@@ -1,0 +1,3583 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SIADIK PSDMBP — Sistem Informasi Arsip Digital Keuangan | Kementerian ESDM</title>
+
+  <!-- Favicon SVG Logo Resmi Baru Kementerian ESDM -->
+  <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 2.5 C67 9 86.5 21.5 95.5 36.5 C97.5 56 89.5 79.5 76.5 93.5 C60 97.8 40 97.8 23.5 93.5 C10.5 79.5 2.5 56 4.5 36.5 C13.5 21.5 33 9 50 2.5 Z' fill='%23000000'/%3E%3Cpath d='M47.8 7.5 C34 13.2 17.8 24.5 10.2 37.2 C9.2 41.2 9.4 45.2 10.2 49.2 L41.5 47.7 C45.8 47.4 47.4 44.5 47.6 39.5 Z' fill='%23FFE600'/%3E%3Cpath d='M52.2 7.5 C66 13.2 82.2 24.5 89.8 37.2 C90.8 41.2 90.6 45.2 89.8 49.2 L58.5 47.7 C54.2 47.4 52.6 44.5 52.4 39.5 Z' fill='%23FFE600'/%3E%3Cpath d='M10.5 52.6 L41.5 54.1 C45.8 54.4 47.4 57.2 47.7 62.2 L48.8 92.2 C39.5 92.2 31.2 91.2 25 89.2 C16.5 78.5 12 65.5 10.5 52.6 Z' fill='%23FFE600'/%3E%3Cpath d='M89.5 52.6 L58.5 54.1 C54.2 54.4 52.6 57.2 52.3 62.2 L51.2 92.2 C60.5 92.2 68.8 91.2 75 89.2 C83.5 78.5 88 65.5 89.5 52.6 Z' fill='%23FFE600'/%3E%3C/svg%3E" />
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            navy: {
+              950: '#09182D',
+              900: '#0F2440',
+              800: '#132C4E',
+              700: '#1B3B66',
+            },
+            esdm: {
+              yellow: '#FFE600',
+              gold: '#FACC15',
+              amber: '#F59E0B',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* Scrollbar rapi & modern */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* Animasi Toast */
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .animate-toast {
+      animation: slideInRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Gaya khusus cetak laporan resmi */
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #ffffff !important; }
+      #main-content-wrapper { margin-left: 0 !important; padding: 0 !important; }
+    }
+  </style>
+</head>
+<body class="bg-[#F1F5F9] text-slate-800 font-sans antialiased selection:bg-yellow-200 selection:text-slate-900">
+
+  <!-- =====================================================================
+       TOAST NOTIFICATION CONTAINER
+  ====================================================================== -->
+  <div id="toast-container" class="fixed top-4 right-4 z-[120] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none no-print"></div>
+
+  <!-- =====================================================================
+       GLOBAL LOADER OVERLAY (UNTUK KOMUNIKASI GOOGLE APPS SCRIPT)
+  ====================================================================== -->
+  <div id="global-loader" class="hidden fixed inset-0 z-[110] bg-navy-950/60 backdrop-blur-xs flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl shadow-2xl px-6 py-5 flex items-center gap-4 border border-slate-200 max-w-xs w-full">
+      <div class="w-8 h-8 rounded-full border-4 border-slate-200 border-t-navy-900 animate-spin shrink-0"></div>
+      <div class="min-w-0">
+        <p id="loader-title" class="text-sm font-bold text-navy-900 truncate">Menyinkronkan Data...</p>
+        <p id="loader-subtitle" class="text-xs text-slate-500 truncate">Menghubungi Google Apps Script</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       HALAMAN LOGIN PRODUKSI (TANPA AKUN DEMO 1-KLIK)
+  ====================================================================== -->
+  <div id="login-view" class="min-h-screen flex flex-col lg:flex-row bg-navy-900">
+    <!-- Panel Kiri: Identitas Resmi PSDMBP & Kementerian ESDM -->
+    <div class="lg:w-5/12 xl:w-1/2 relative overflow-hidden bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 text-white p-8 lg:p-14 flex flex-col justify-between">
+      <div class="absolute -top-24 -left-24 w-96 h-96 bg-esdm-yellow/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute bottom-0 right-0 w-80 h-80 bg-esdm-amber/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="relative z-10">
+        <div class="flex items-center gap-4 mb-10">
+          <div class="w-16 h-16 rounded-2xl bg-navy-950/70 border border-esdm-yellow/40 p-2 flex items-center justify-center shadow-lg shrink-0" id="login-logo-slot"></div>
+          <div>
+            <p class="text-xs font-bold tracking-widest text-esdm-yellow uppercase">Kementerian ESDM • Badan Geologi</p>
+            <h1 class="text-2xl font-extrabold tracking-tight text-white">SIADIK PSDMBP</h1>
+          </div>
+        </div>
+
+        <div class="max-w-lg mt-4 lg:mt-10">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/35 text-emerald-300 text-xs font-semibold mb-5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Mode Produksi • Terhubung Google Sheets & Google Drive</span>
+          </div>
+          <h2 class="text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight text-white mb-4">
+            Sistem Informasi Arsip Digital Keuangan
+          </h2>
+          <p class="text-slate-300 text-sm lg:text-base leading-relaxed mb-8">
+            Pusat Sumber Daya Mineral, Batubara, dan Panas Bumi (PSDMBP). Platform resmi pengarsipan, validasi, dan pengawasan berkas SPM, SP2D, serta pertanggungjawaban anggaran secara terpusat di Google Drive instansi.
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-white/10 pt-6">
+            <div>
+              <p class="text-2xl font-extrabold text-esdm-yellow">Multi-TA</p>
+              <p class="text-xs text-slate-300 mt-0.5">Arsip TA 2024 – 2027</p>
+            </div>
+            <div>
+              <p class="text-2xl font-extrabold text-esdm-yellow">RBAC Ketat</p>
+              <p class="text-xs text-slate-300 mt-0.5">4 Peran Terproteksi</p>
+            </div>
+            <div>
+              <p class="text-2xl font-extrabold text-esdm-yellow">Cloud Drive</p>
+              <p class="text-xs text-slate-300 mt-0.5">Penyimpanan Terpusat</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative z-10 mt-10 pt-6 border-t border-white/10 text-xs text-slate-400 flex flex-wrap items-center justify-between gap-2">
+        <span>Jl. Soekarno-Hatta No. 444, Bandung, Jawa Barat</span>
+        <span>&copy; 2026 PSDMBP — Kementerian ESDM</span>
+      </div>
+    </div>
+
+    <!-- Panel Kanan: Form Autentikasi Server GAS -->
+    <div class="lg:w-7/12 xl:w-1/2 bg-[#F1F5F9] flex items-center justify-center p-6 sm:p-10 lg:p-14">
+      <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200/90 p-6 sm:p-8 space-y-6">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h3 class="text-2xl font-extrabold text-navy-900">Masuk ke SIADIK</h3>
+            <p class="text-sm text-slate-500 mt-1">Masukkan kredensial akun resmi pegawai PSDMBP.</p>
+          </div>
+          <div class="w-12 h-12 shrink-0 lg:hidden" id="login-mobile-logo-slot"></div>
+        </div>
+
+        <!-- Status Koneksi Server di Halaman Login -->
+        <div id="login-server-status" class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 min-w-0">
+            <span id="login-server-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+            <span id="login-server-text" class="truncate font-medium">Memeriksa koneksi server GAS...</span>
+          </div>
+          <button type="button" onclick="checkGasServerHealth()" class="text-navy-900 font-bold hover:underline shrink-0">Uji Ulang</button>
+        </div>
+
+        <!-- Alert Error Login -->
+        <div id="login-error-box" class="hidden p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2.5">
+          <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 shrink-0 mt-0.5"></i>
+          <span id="login-error-text" class="leading-relaxed">Terjadi kesalahan saat masuk.</span>
+        </div>
+
+        <form id="login-form" class="space-y-4">
+          <div>
+            <label for="login-username" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Username / Email / NIP</label>
+            <div class="relative">
+              <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+              <input type="text" id="login-username" autocomplete="username" placeholder="Masukkan username atau NIP" class="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow focus:border-esdm-amber transition" required />
+            </div>
+          </div>
+
+          <div>
+            <label for="login-password" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Kata Sandi</label>
+            <div class="relative">
+              <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+              <input type="password" id="login-password" autocomplete="current-password" placeholder="Masukkan kata sandi" class="w-full pl-10 pr-11 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow focus:border-esdm-amber transition" required />
+              <button type="button" onclick="togglePasswordVisibility('login-password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-navy-900" title="Tampilkan/Sembunyikan sandi">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-xs">
+            <label class="inline-flex items-center gap-2 text-slate-600 cursor-pointer select-none">
+              <input type="checkbox" id="login-remember" class="rounded border-slate-300 text-navy-900 focus:ring-esdm-yellow" checked />
+              <span>Ingat sesi login di perangkat ini</span>
+            </label>
+          </div>
+
+          <button type="submit" id="login-submit-btn" class="w-full py-3 px-4 bg-esdm-yellow hover:bg-esdm-gold text-navy-950 font-extrabold text-sm rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+            <i data-lucide="log-in" class="w-4 h-4"></i>
+            Masuk Aplikasi
+          </button>
+        </form>
+
+        <div class="pt-4 border-t border-slate-100 text-[11px] text-slate-500 leading-relaxed">
+          <p class="flex items-start gap-2">
+            <i data-lucide="shield-alert" class="w-4 h-4 text-navy-900 shrink-0 mt-0.5"></i>
+            <span>Akses dibatasi sesuai peran akun yang terdaftar pada database Google Sheets PSDMBP. Hubungi Administrator apabila lupa kata sandi.</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MAIN APPLICATION SHELL (PRODUKSI TERHUBUNG GAS)
+  ====================================================================== -->
+  <div id="app-shell" class="hidden min-h-screen flex bg-[#F1F5F9]">
+
+    <!-- Backdrop Sidebar Mobile -->
+    <div id="sidebar-backdrop" onclick="toggleMobileSidebar(false)" class="fixed inset-0 bg-navy-950/60 backdrop-blur-xs z-40 hidden lg:hidden no-print"></div>
+
+    <!-- SIDEBAR NAVIGASI -->
+    <aside id="sidebar" class="fixed lg:sticky top-0 left-0 z-50 h-screen bg-navy-900 text-slate-200 flex flex-col justify-between transition-transform duration-300 -translate-x-full lg:translate-x-0 shrink-0 border-r border-navy-800 no-print" style="width: 272px;">
+      <div>
+        <!-- Header Sidebar dengan Logo ESDM Baru -->
+        <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-11 h-11 rounded-xl bg-navy-950/70 border border-esdm-yellow/35 p-1 flex items-center justify-center shrink-0" id="sidebar-logo-slot"></div>
+            <div class="min-w-0">
+              <h1 class="text-base font-extrabold text-white tracking-tight truncate">SIADIK <span class="text-esdm-yellow">PSDMBP</span></h1>
+              <p class="text-[11px] font-medium text-slate-300 truncate">Kementerian ESDM</p>
+            </div>
+          </div>
+          <button onclick="toggleMobileSidebar(false)" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Menu Navigasi Dinamis (Sesuai RBAC Ketat) -->
+        <nav class="p-3.5 space-y-1" id="sidebar-nav"></nav>
+      </div>
+
+      <!-- Footer Sidebar -->
+      <div class="p-4 border-t border-white/10 space-y-3">
+        <div class="bg-navy-800/80 rounded-xl p-3 border border-white/10 flex items-center gap-3">
+          <div id="sidebar-user-avatar" class="w-9 h-9 rounded-lg bg-esdm-yellow text-navy-950 font-extrabold text-sm flex items-center justify-center shrink-0">AD</div>
+          <div class="min-w-0 flex-1">
+            <p id="sidebar-user-name" class="text-xs font-bold text-white truncate">Nama Pegawai</p>
+            <p id="sidebar-user-role" class="text-[11px] text-esdm-yellow font-semibold truncate">Peran</p>
+          </div>
+        </div>
+        <p class="text-[10px] text-slate-400 text-center">SIADIK PSDMBP • Produksi Cloud GAS</p>
+      </div>
+    </aside>
+
+    <!-- KONTEN UTAMA -->
+    <div id="main-content-wrapper" class="flex-1 flex flex-col min-w-0">
+
+      <!-- TOPBAR -->
+      <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 no-print">
+        <div class="flex items-center gap-3">
+          <button onclick="toggleMobileSidebar(true)" class="lg:hidden p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100">
+            <i data-lucide="menu" class="w-5 h-5"></i>
+          </button>
+          <div>
+            <h2 id="topbar-title" class="text-base sm:text-lg font-extrabold text-navy-900 leading-tight">Dashboard</h2>
+            <p class="text-[11px] text-slate-500 hidden sm:block">Pusat Sumber Daya Mineral, Batubara, dan Panas Bumi</p>
+          </div>
+        </div>
+
+        <!-- Kontrol Topbar Produksi -->
+        <div class="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+          <!-- Status Koneksi Live -->
+          <div id="conn-status-badge" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border bg-emerald-50 border-emerald-200 text-emerald-800">
+            <span id="conn-status-dot" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span id="conn-status-label" class="hidden sm:inline">Terhubung GAS</span>
+          </div>
+
+          <!-- Tombol Sinkronkan Data -->
+          <button onclick="syncDataFromServer(true)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-navy-900 text-xs font-bold transition" title="Sinkronkan ulang dari Google Sheets & Drive">
+            <i id="sync-icon" data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span class="hidden md:inline">Sinkronkan</span>
+          </button>
+
+          <!-- Filter Tahun Anggaran -->
+          <div class="flex items-center bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1.5">
+            <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-500 mr-1.5 shrink-0"></i>
+            <label for="fiscal-year-select" class="text-xs font-semibold text-slate-600 mr-1 hidden md:inline">TA:</label>
+            <select id="fiscal-year-select" onchange="handleYearChange(this.value)" class="bg-transparent text-xs sm:text-sm font-bold text-navy-900 focus:outline-none cursor-pointer">
+              <option value="2027">2027</option>
+              <option value="2026" selected>2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+              <option value="ALL">Semua TA</option>
+            </select>
+          </div>
+
+          <!-- Lonceng Notifikasi -->
+          <div class="relative">
+            <button id="notif-btn" onclick="toggleNotifDropdown()" class="relative p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition" title="Notifikasi">
+              <i data-lucide="bell" class="w-4 h-4"></i>
+              <span id="notif-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-rose-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">0</span>
+            </button>
+            <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+              <div class="px-4 py-3 bg-navy-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="bell-ring" class="w-4 h-4 text-esdm-yellow"></i>
+                  <span class="text-xs font-bold uppercase tracking-wider">Notifikasi Sistem</span>
+                </div>
+                <button onclick="markAllNotifRead()" class="text-[11px] text-esdm-yellow hover:underline font-medium">Tandai dibaca</button>
+              </div>
+              <div id="notif-list" class="max-h-80 overflow-y-auto divide-y divide-slate-100"></div>
+            </div>
+          </div>
+
+          <!-- Profil & Logout -->
+          <div class="hidden xl:flex items-center gap-2 pl-2 border-l border-slate-200">
+            <div id="topbar-avatar" class="w-8 h-8 rounded-full bg-navy-900 text-esdm-yellow font-bold text-xs flex items-center justify-center">AD</div>
+            <div class="leading-tight">
+              <p id="topbar-user-name" class="text-xs font-bold text-navy-900 max-w-[140px] truncate">Pegawai</p>
+              <p id="topbar-user-role" class="text-[10px] font-semibold text-slate-500">Peran</p>
+            </div>
+          </div>
+
+          <button onclick="logout()" class="p-2.5 rounded-xl border border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-600 transition" title="Keluar">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- AREA KONTEN HALAMAN -->
+      <main class="flex-1 p-4 sm:p-6 lg:p-7 max-w-[1600px] w-full mx-auto space-y-6">
+
+        <!-- ===============================================================
+             VIEW 1: DASHBOARD RINGKASAN
+        ================================================================ -->
+        <section id="view-dashboard" class="space-y-6">
+          <!-- Welcome Banner -->
+          <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-navy-900 via-navy-800 to-navy-900 text-white p-6 sm:p-7 shadow-md border border-navy-800">
+            <div class="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-esdm-yellow/15 to-transparent pointer-events-none"></div>
+            <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+              <div class="space-y-1.5 max-w-2xl">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                  <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-esdm-yellow/15 border border-esdm-yellow/30 text-esdm-yellow text-xs font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-esdm-yellow animate-pulse"></span>
+                    <span id="banner-ta-label">Tahun Anggaran 2026</span>
+                  </span>
+                  <span id="banner-role-badge" class="px-2.5 py-1 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold">Peran</span>
+                </div>
+                <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight">
+                  Selamat Datang, <span id="banner-user-fullname" class="text-esdm-yellow">Pegawai PSDMBP</span>
+                </h2>
+                <p id="banner-summary" class="text-xs sm:text-sm text-slate-300 leading-relaxed"></p>
+              </div>
+              <div id="banner-actions" class="flex flex-wrap items-center gap-2.5 shrink-0"></div>
+            </div>
+          </div>
+
+          <!-- 5 Kartu KPI -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="bg-navy-900 text-white rounded-2xl p-5 shadow-sm border border-navy-800 flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold text-slate-300">Total Dokumen</span>
+                <div class="w-8 h-8 rounded-lg bg-white/10 text-esdm-yellow flex items-center justify-center">
+                  <i data-lucide="folder-archive" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p id="kpi-total-docs" class="text-3xl font-extrabold">0</p>
+              <p class="text-[11px] text-slate-400 mt-1">Arsip SPM & SP2D</p>
+            </div>
+
+            <div class="bg-navy-800 text-white rounded-2xl p-5 shadow-sm border border-navy-700 flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold text-slate-300">Sudah Validasi</span>
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p id="kpi-verified" class="text-3xl font-extrabold text-emerald-400">0</p>
+              <p class="text-[11px] text-slate-300 mt-1">Berstatus Tervalidasi</p>
+            </div>
+
+            <div class="bg-esdm-yellow text-navy-950 rounded-2xl p-5 shadow-sm border border-yellow-400 flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold text-navy-900">Menunggu Verifikasi</span>
+                <div class="w-8 h-8 rounded-lg bg-navy-900/15 text-navy-950 flex items-center justify-center">
+                  <i data-lucide="clock" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p id="kpi-pending" class="text-3xl font-extrabold text-navy-950">0</p>
+              <p class="text-[11px] text-navy-900/80 font-medium mt-1">Antrean Validator</p>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 shadow-xs border border-rose-200 flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold text-rose-700">Perlu Revisi</span>
+                <div class="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
+                  <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p id="kpi-rejected" class="text-3xl font-extrabold text-rose-600">0</p>
+              <p class="text-[11px] text-slate-500 mt-1">Dikembalikan ke Operator</p>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 flex flex-col justify-between sm:col-span-2 lg:col-span-1">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold text-navy-900">Total Nilai SPM</span>
+                <div class="w-8 h-8 rounded-lg bg-yellow-100 text-amber-700 flex items-center justify-center">
+                  <i data-lucide="banknote" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p id="kpi-total-value" class="text-lg sm:text-xl font-extrabold text-navy-900 truncate" title="Rp 0">Rp 0</p>
+              <p class="text-[11px] text-slate-500 mt-1">Akumulasi nominal TA</p>
+            </div>
+          </div>
+
+          <!-- Grafik Aktivitas Arsip & Status Verifikasi -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <div>
+                  <h3 class="text-sm font-extrabold text-navy-900">Aktivitas Arsip (Jan – Des)</h3>
+                  <p class="text-xs text-slate-500">Jumlah berkas bulanan (batang navy) & tren nilai akumulasi (garis emas)</p>
+                </div>
+                <span id="chart-ta-pill" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-navy-900 text-esdm-yellow">TA 2026</span>
+              </div>
+              <div class="h-64 relative">
+                <canvas id="chart-aktivitas"></canvas>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col">
+              <div class="mb-4">
+                <h3 class="text-sm font-extrabold text-navy-900">Status Verifikasi Arsip</h3>
+                <p class="text-xs text-slate-500">Proporsi kelengkapan dokumen keuangan</p>
+              </div>
+              <div class="h-56 relative flex-1 flex items-center justify-center">
+                <canvas id="chart-status"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabel Data Dokumen Terbaru -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 class="text-sm font-extrabold text-navy-900">Data Dokumen Terbaru</h3>
+                <p class="text-xs text-slate-500">Arsip SPM & SP2D terkini pada Tahun Anggaran aktif</p>
+              </div>
+              <button onclick="navigate('arsip')" class="text-xs font-bold text-navy-900 bg-slate-100 hover:bg-esdm-yellow px-3.5 py-1.5 rounded-lg transition inline-flex items-center gap-1.5">
+                Lihat Semua Arsip
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <th class="py-3 px-4">Dokumen (No. SPM / SP2D)</th>
+                    <th class="py-3 px-4">Jenis</th>
+                    <th class="py-3 px-4">Tanggal SPM</th>
+                    <th class="py-3 px-4">Uraian & Pengunggah</th>
+                    <th class="py-3 px-4 text-right">Nilai (Rp)</th>
+                    <th class="py-3 px-4 text-center">Status</th>
+                    <th class="py-3 px-4 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-recent-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===============================================================
+             VIEW 2: ARSIP DOKUMEN KEUANGAN
+        ================================================================ -->
+        <section id="view-arsip" class="hidden space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-extrabold text-navy-900">Arsip Dokumen Keuangan</h2>
+              <p id="archive-subtitle" class="text-xs sm:text-sm text-slate-500">Kelola, cari, pratinjau PDF Google Drive, dan unggah arsip SPM/SP2D secara terpusat.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <button id="btn-export-archive-csv" onclick="exportCSV()" class="px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-semibold transition flex items-center gap-2">
+                <i data-lucide="download" class="w-4 h-4 text-slate-500"></i>
+                Ekspor CSV
+              </button>
+              <button id="btn-add-archive" onclick="openDocModal()" class="px-4 py-2 rounded-xl bg-esdm-yellow hover:bg-esdm-gold text-navy-950 text-xs sm:text-sm font-extrabold shadow-xs transition flex items-center gap-2">
+                <i data-lucide="file-plus-2" class="w-4 h-4"></i>
+                Unggah Dokumen PDF
+              </button>
+            </div>
+          </div>
+
+          <!-- Panel Filter Multi-Kriteria -->
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3">
+              <div class="lg:col-span-4">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Cari No. SPM / Uraian / Pengunggah</label>
+                <div class="relative">
+                  <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                  <input type="text" id="filter-search" oninput="renderArchiveTable()" placeholder="Ketik No. SPM, SP2D, uraian, atau nama..." class="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow" />
+                </div>
+              </div>
+              <div class="lg:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Jenis Dokumen</label>
+                <select id="filter-type" onchange="renderArchiveTable()" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-esdm-yellow">
+                  <option value="ALL">Semua Jenis</option>
+                  <option value="SPM-LS">SPM-LS</option>
+                  <option value="SPM-GU">SPM-GU</option>
+                  <option value="SPM-UP">SPM-UP</option>
+                  <option value="SPM-TUP">SPM-TUP</option>
+                  <option value="SP2D">SP2D</option>
+                  <option value="Gaji & Tukin">Gaji & Tukin</option>
+                </select>
+              </div>
+              <div class="lg:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Status</label>
+                <select id="filter-status" onchange="renderArchiveTable()" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-esdm-yellow">
+                  <option value="ALL">Semua Status</option>
+                  <option value="Menunggu Verifikasi">Menunggu Verifikasi</option>
+                  <option value="Tervalidasi">Tervalidasi</option>
+                  <option value="Perlu Revisi">Perlu Revisi</option>
+                </select>
+              </div>
+              <div class="lg:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tanggal Dari</label>
+                <input type="date" id="filter-date-start" onchange="renderArchiveTable()" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow" />
+              </div>
+              <div class="lg:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tanggal Sampai</label>
+                <input type="date" id="filter-date-end" onchange="renderArchiveTable()" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow" />
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs text-slate-500">
+              <span id="archive-count-info" class="font-medium">Menampilkan 0 dokumen</span>
+              <button onclick="resetArchiveFilters()" class="text-navy-900 hover:underline font-bold flex items-center gap-1">
+                <i data-lucide="filter-x" class="w-3.5 h-3.5"></i>
+                Bersihkan Filter
+              </button>
+            </div>
+          </div>
+
+          <!-- Tabel Data Dokumen -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-navy-900 text-slate-200 text-[11px] font-bold uppercase tracking-wider">
+                    <th class="py-3.5 px-4">No. SPM & SP2D</th>
+                    <th class="py-3.5 px-4">TA / Jenis</th>
+                    <th class="py-3.5 px-4">Tanggal SPM</th>
+                    <th class="py-3.5 px-4">Uraian & Pengunggah</th>
+                    <th class="py-3.5 px-4 text-right">Nilai (Rp)</th>
+                    <th class="py-3.5 px-4 text-center">Status</th>
+                    <th class="py-3.5 px-4 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="archive-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===============================================================
+             VIEW 3: VALIDASI (KHUSUS VALIDATOR & ADMINISTRATOR)
+        ================================================================ -->
+        <section id="view-validasi" class="hidden space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-extrabold text-navy-900">Antrean Validasi Dokumen</h2>
+              <p class="text-xs sm:text-sm text-slate-500">Periksa kelengkapan berkas PDF lalu setujui (Tervalidasi) atau kembalikan dengan catatan (Perlu Revisi).</p>
+            </div>
+            <div class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-yellow-100 border border-yellow-300 text-navy-950 text-xs font-extrabold">
+              <i data-lucide="hourglass" class="w-4 h-4"></i>
+              <span id="validation-queue-badge">0 Dokumen Menunggu</span>
+            </div>
+          </div>
+          <div id="validation-cards-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+        </section>
+
+        <!-- ===============================================================
+             VIEW 4: RIWAYAT & AUDIT LOG (KHUSUS ADMINISTRATOR)
+        ================================================================ -->
+        <section id="view-riwayat" class="hidden space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-extrabold text-navy-900">Riwayat & Log Audit Sistem</h2>
+              <p id="audit-subtitle" class="text-xs sm:text-sm text-slate-500">Jejak kronologis seluruh aktivitas login, unggah, validasi, revisi, hapus, dan pengelolaan akun.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button onclick="refreshAuditLogs()" class="px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-bold transition inline-flex items-center gap-1.5">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                Muat Ulang Audit
+              </button>
+              <button onclick="exportAuditCSV()" class="px-3.5 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs sm:text-sm font-bold transition inline-flex items-center gap-1.5">
+                <i data-lucide="download" class="w-3.5 h-3.5 text-esdm-yellow"></i>
+                Ekspor Audit CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- 4 Kartu Statistik Audit -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-navy-900 text-white rounded-2xl p-4 border border-navy-800 shadow-xs">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-slate-300">Total Catatan Audit</span>
+                <i data-lucide="clipboard-list" class="w-4 h-4 text-esdm-yellow"></i>
+              </div>
+              <p id="audit-stat-total" class="text-2xl font-extrabold">0</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">Sesuai hak akses & filter</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-blue-700">Unggah & Revisi</span>
+                <i data-lucide="upload-cloud" class="w-4 h-4 text-blue-600"></i>
+              </div>
+              <p id="audit-stat-upload" class="text-2xl font-extrabold text-navy-900">0</p>
+              <p class="text-[11px] text-slate-500 mt-0.5">Aktivitas arsip dokumen</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-emerald-700">Keputusan Validasi</span>
+                <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i>
+              </div>
+              <p id="audit-stat-validate" class="text-2xl font-extrabold text-navy-900">0</p>
+              <p class="text-[11px] text-slate-500 mt-0.5">Persetujuan & permintaan revisi</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-yellow-300 shadow-xs">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-amber-800">Aktivitas Hari Ini</span>
+                <i data-lucide="activity" class="w-4 h-4 text-esdm-amber"></i>
+              </div>
+              <p id="audit-stat-today" class="text-2xl font-extrabold text-navy-900">0</p>
+              <p class="text-[11px] text-slate-500 mt-0.5">Tercatat pada tanggal hari ini</p>
+            </div>
+          </div>
+
+          <!-- Panel Filter Audit -->
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
+              <div class="lg:col-span-4">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pencarian Audit</label>
+                <div class="relative">
+                  <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                  <input type="text" id="audit-search-input" oninput="renderAuditLogs()" placeholder="Cari aktor, No. SPM, aksi..." class="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-esdm-yellow" />
+                </div>
+              </div>
+              <div class="lg:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Jenis Aksi</label>
+                <select id="audit-action-filter" onchange="renderAuditLogs()" class="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-esdm-yellow">
+                  <option value="ALL">Semua Aksi</option>
+                  <option value="LOGIN">Login</option>
+                  <option value="UPLOAD">Unggah / Revisi</option>
+                  <option value="VALIDATE">Validasi</option>
+                  <option value="DELETE">Hapus</option>
+                  <option value="USER">Manajemen Akun</option>
+                </select>
+              </div>
+              <div class="lg:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Peran</label>
+                <select id="audit-role-filter" onchange="renderAuditLogs()" class="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-esdm-yellow">
+                  <option value="ALL">Semua Peran</option>
+                  <option value="Administrator">Administrator</option>
+                  <option value="Operator">Operator</option>
+                  <option value="Validator">Validator</option>
+                  <option value="Pengawas">Pengawas</option>
+                </select>
+              </div>
+              <div class="lg:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tanggal Dari</label>
+                <input type="date" id="audit-date-start" onchange="renderAuditLogs()" class="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow" />
+              </div>
+              <div class="lg:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tanggal Sampai</label>
+                <input type="date" id="audit-date-end" onchange="renderAuditLogs()" class="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow" />
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs text-slate-500">
+              <span id="audit-count-info" class="font-semibold">Menampilkan 0 catatan audit</span>
+              <button onclick="resetAuditFilters()" class="text-navy-900 hover:underline font-bold inline-flex items-center gap-1">
+                <i data-lucide="filter-x" class="w-3.5 h-3.5"></i>
+                Bersihkan Filter Audit
+              </button>
+            </div>
+          </div>
+
+          <!-- Tabel Log Audit -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-navy-900 text-slate-200 text-[11px] font-bold uppercase tracking-wider">
+                    <th class="py-3.5 px-4">Waktu</th>
+                    <th class="py-3.5 px-4">Pengguna & Peran</th>
+                    <th class="py-3.5 px-4">No. SPM / Referensi</th>
+                    <th class="py-3.5 px-4">Aktivitas & Catatan Audit</th>
+                  </tr>
+                </thead>
+                <tbody id="audit-logs-tbody" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===============================================================
+             VIEW 5: LAPORAN & REKAPITULASI (ADMIN, OPERATOR, VALIDATOR)
+        ================================================================ -->
+        <section id="view-laporan" class="hidden space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
+            <div>
+              <h2 class="text-xl font-extrabold text-navy-900">Laporan Rekapitulasi Arsip Keuangan</h2>
+              <p class="text-xs sm:text-sm text-slate-500">Rekapitulasi arsip digital per jenis dokumen dan Tahun Anggaran untuk pelaporan resmi.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <button onclick="exportCSV()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-xs transition flex items-center gap-2">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                Ekspor CSV
+              </button>
+              <button onclick="window.print()" class="px-4 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs sm:text-sm font-bold shadow-xs transition flex items-center gap-2">
+                <i data-lucide="printer" class="w-4 h-4 text-esdm-yellow"></i>
+                Cetak Laporan
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+            <div class="border-b-2 border-navy-900 pb-4 flex items-center gap-4">
+              <div class="w-16 h-16 shrink-0" id="report-logo-slot"></div>
+              <div>
+                <p class="text-xs font-bold uppercase tracking-widest text-slate-600">Kementerian Energi dan Sumber Daya Mineral • Badan Geologi</p>
+                <h3 class="text-lg font-extrabold text-navy-900">PUSAT SUMBER DAYA MINERAL, BATUBARA, DAN PANAS BUMI (PSDMBP)</h3>
+                <p class="text-xs text-slate-500">Laporan Rekapitulasi Arsip Digital Keuangan (SIADIK) — <span id="report-ta-subtitle" class="font-bold text-navy-900">Tahun Anggaran 2026</span></p>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-100 border-y border-slate-300 text-xs font-bold text-slate-700 uppercase">
+                    <th class="py-3 px-4">Jenis Dokumen</th>
+                    <th class="py-3 px-4 text-center">Total Berkas</th>
+                    <th class="py-3 px-4 text-center">Tervalidasi</th>
+                    <th class="py-3 px-4 text-center">Menunggu</th>
+                    <th class="py-3 px-4 text-center">Perlu Revisi</th>
+                    <th class="py-3 px-4 text-right">Total Nilai (Rp)</th>
+                  </tr>
+                </thead>
+                <tbody id="report-summary-tbody" class="divide-y divide-slate-200 text-sm"></tbody>
+                <tfoot id="report-summary-tfoot" class="bg-navy-900 text-white font-bold text-sm"></tfoot>
+              </table>
+            </div>
+
+            <div class="pt-4 flex flex-col sm:flex-row justify-between text-xs text-slate-500 gap-2">
+              <span id="report-printed-at">Dicetak pada: -</span>
+              <span>Dihasilkan secara elektronik melalui SIADIK PSDMBP Kementerian ESDM.</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===============================================================
+             VIEW 6: PENGATURAN (KHUSUS ADMINISTRATOR)
+        ================================================================ -->
+        <section id="view-pengaturan" class="hidden space-y-5">
+          <div>
+            <h2 class="text-xl font-extrabold text-navy-900">Pengaturan Sistem & Manajemen Pengguna</h2>
+            <p class="text-xs sm:text-sm text-slate-500">Kelola akun pegawai PSDMBP dan pantau integrasi backend Google Apps Script produksi.</p>
+          </div>
+
+          <!-- Sub-Tab Navigation -->
+          <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+            <button id="tab-btn-users" onclick="switchSettingsTab('users')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-navy-900 text-esdm-yellow">
+              <i data-lucide="users" class="w-4 h-4"></i>
+              Manajemen Pengguna
+            </button>
+            <button id="tab-btn-backend" onclick="switchSettingsTab('backend')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-slate-600 border border-slate-200 hover:bg-slate-50">
+              <i data-lucide="cloud-cog" class="w-4 h-4"></i>
+              Integrasi Backend GAS & Code.gs
+            </button>
+          </div>
+
+          <!-- SUB-TAB A: MANAJEMEN PENGGUNA -->
+          <div id="settings-tab-users" class="space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <p class="text-xs sm:text-sm text-slate-600">Tambah, ubah peran, reset kata sandi, nonaktifkan, atau hapus akun pegawai di Google Sheets.</p>
+              <button onclick="openUserModal()" class="px-4 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs sm:text-sm font-bold shadow-xs transition flex items-center gap-2">
+                <i data-lucide="user-plus" class="w-4 h-4 text-esdm-yellow"></i>
+                Tambah Pengguna
+              </button>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="bg-navy-900 text-slate-200 text-[11px] font-bold uppercase tracking-wider">
+                      <th class="py-3.5 px-4">Nama Lengkap & NIP</th>
+                      <th class="py-3.5 px-4">Username / Email</th>
+                      <th class="py-3.5 px-4">Peran</th>
+                      <th class="py-3.5 px-4">Unit / Subbagian</th>
+                      <th class="py-3.5 px-4 text-center">Status</th>
+                      <th class="py-3.5 px-4 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="users-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB-TAB B: INTEGRASI BACKEND GAS & REFERENSI CODE.GS -->
+          <div id="settings-tab-backend" class="hidden grid grid-cols-1 xl:grid-cols-12 gap-6">
+            <div class="xl:col-span-5 space-y-5">
+              <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-sm font-extrabold text-navy-900 flex items-center gap-2">
+                    <i data-lucide="plug-zap" class="w-4 h-4 text-esdm-amber"></i>
+                    Endpoint Produksi GAS
+                  </h3>
+                  <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">Produksi Aktif</span>
+                </div>
+
+                <form id="gas-config-form" class="space-y-4">
+                  <div>
+                    <label for="gas-url-input" class="block text-xs font-bold text-slate-700 mb-1">URL Web App Google Apps Script</label>
+                    <input type="url" id="gas-url-input" class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow font-mono" required />
+                    <p class="text-[11px] text-slate-400 mt-1">URL Web App produksi sudah tertanam langsung sebagai default aplikasi.</p>
+                  </div>
+                  <div>
+                    <label for="gas-token-input" class="block text-xs font-bold text-slate-700 mb-1">Secret API Token (Opsional)</label>
+                    <input type="password" id="gas-token-input" placeholder="Kosongkan jika SECRET_TOKEN kosong di Code.gs" class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow font-mono" />
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <button type="submit" class="flex-1 py-2.5 px-4 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-bold transition flex items-center justify-center gap-2">
+                      <i data-lucide="wifi" class="w-4 h-4 text-esdm-yellow"></i>
+                      Simpan & Uji Koneksi
+                    </button>
+                    <button type="button" onclick="resetGasUrlDefault()" class="py-2.5 px-3.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold transition">
+                      URL Default
+                    </button>
+                  </div>
+                </form>
+
+                <div id="gas-test-result" class="hidden p-3.5 rounded-xl text-xs border"></div>
+              </div>
+
+              <div class="bg-navy-900 text-slate-200 rounded-2xl p-5 space-y-3 shadow-sm">
+                <h4 class="text-sm font-extrabold text-esdm-yellow flex items-center gap-2">
+                  <i data-lucide="rocket" class="w-4 h-4"></i>
+                  Cara Update Code.gs Tanpa Ganti URL
+                </h4>
+                <ol class="text-xs space-y-2 list-decimal list-inside text-slate-300 leading-relaxed">
+                  <li>Klik tombol <strong>Salin Skrip Code.gs</strong> di sebelah kanan.</li>
+                  <li>Buka editor Google Apps Script proyek SIADIK Anda, tempel kode (pertahankan nilai <code class="text-esdm-yellow">ROOT_FOLDER_ID</code> bila ada), lalu tekan <strong>Ctrl + S</strong>.</li>
+                  <li>Klik <strong>Deploy &rarr; Manage deployments</strong> &rarr; ikon <strong>Edit (Pensil)</strong>.</li>
+                  <li>Ubah <strong>Version</strong> menjadi <strong>New version</strong>, lalu klik <strong>Deploy</strong>. URL Web App tetap sama dan seluruh fitur baru langsung aktif!</li>
+                </ol>
+              </div>
+            </div>
+
+            <div class="xl:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex flex-col">
+              <div class="px-5 py-3.5 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="file-code-2" class="w-4 h-4 text-esdm-yellow"></i>
+                  <span class="text-xs sm:text-sm font-bold font-mono">Code.gs — Backend Produksi (RBAC Ketat + CRUD User)</span>
+                </div>
+                <button type="button" onclick="copyGasCode()" class="px-3.5 py-1.5 rounded-lg bg-esdm-yellow hover:bg-esdm-gold text-navy-950 text-xs font-extrabold transition flex items-center gap-1.5">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                  Salin Skrip Code.gs
+                </button>
+              </div>
+              <pre class="p-4 bg-slate-950 text-emerald-300 text-[11px] leading-relaxed overflow-auto max-h-[540px] font-mono"><code id="gas-code-preview"></code></pre>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL 1: UNGGAH / REVISI ARSIP DOKUMEN PDF
+  ====================================================================== -->
+  <div id="modal-doc-form" class="hidden fixed inset-0 z-[70] bg-navy-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden my-8">
+      <div class="px-6 py-4 bg-navy-900 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <i data-lucide="file-up" class="w-5 h-5 text-esdm-yellow"></i>
+          <h3 id="modal-doc-title" class="text-base font-bold">Unggah Arsip Dokumen Keuangan</h3>
+        </div>
+        <button onclick="closeModal('modal-doc-form')" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="doc-form" class="p-6 space-y-4 max-h-[82vh] overflow-y-auto">
+        <input type="hidden" id="doc-id" />
+
+        <div id="doc-revision-alert" class="hidden p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-1">
+          <p class="font-bold flex items-center gap-1.5"><i data-lucide="alert-triangle" class="w-4 h-4"></i> Catatan Revisi Validator:</p>
+          <p id="doc-revision-note" class="italic"></p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Nomor SPM <span class="text-rose-500">*</span></label>
+            <input type="text" id="doc-no-spm" placeholder="00142/SPM-LS/PSDMBP/2026" class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow" required />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Nomor SP2D <span class="text-rose-500">*</span></label>
+            <input type="text" id="doc-no-sp2d" placeholder="260113010004821" class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow" required />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Jenis Dokumen <span class="text-rose-500">*</span></label>
+            <select id="doc-type" class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-esdm-yellow" required>
+              <option value="SPM-LS">SPM-LS</option>
+              <option value="SPM-GU">SPM-GU</option>
+              <option value="SPM-UP">SPM-UP</option>
+              <option value="SPM-TUP">SPM-TUP</option>
+              <option value="SP2D">SP2D</option>
+              <option value="Gaji & Tukin">Gaji & Tukin</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Tahun Anggaran <span class="text-rose-500">*</span></label>
+            <select id="doc-year" class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-esdm-yellow" required>
+              <option value="2027">2027</option>
+              <option value="2026" selected>2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal SPM <span class="text-rose-500">*</span></label>
+            <input type="date" id="doc-date" class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow" required />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Nilai / Nominal Rupiah (Rp) <span class="text-rose-500">*</span></label>
+          <input type="number" id="doc-amount" min="1" step="1" placeholder="Contoh: 125000000" class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow font-bold" required />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Uraian Pembayaran <span class="text-rose-500">*</span></label>
+          <textarea id="doc-desc" rows="3" placeholder="Tuliskan uraian lengkap kegiatan/pembayaran sesuai SPM..." class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow" required></textarea>
+        </div>
+
+        <!-- Drag & Drop Zone PDF -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Unggah Berkas PDF (Maks. 10 MB)</label>
+          <div id="pdf-dropzone" class="border-2 border-dashed border-slate-300 hover:border-esdm-amber rounded-xl p-5 bg-slate-50 transition text-center cursor-pointer">
+            <input type="file" id="doc-file" accept=".pdf,application/pdf" class="hidden" onchange="handlePdfInputChange(event)" />
+            <div class="flex flex-col items-center gap-1.5 pointer-events-none">
+              <div class="w-11 h-11 rounded-full bg-yellow-100 text-amber-700 flex items-center justify-center">
+                <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+              </div>
+              <span id="doc-file-label" class="text-xs font-bold text-navy-900">Seret & lepas file PDF ke sini, atau klik untuk memilih</span>
+              <span id="doc-file-sub" class="text-[11px] text-slate-400">Hanya format .pdf • Ukuran maksimal 10 MB • Otomatis disimpan ke Google Drive</span>
+            </div>
+          </div>
+          <!-- Progress Bar Unggah -->
+          <div id="upload-progress-wrap" class="hidden mt-3 space-y-1">
+            <div class="flex justify-between text-[11px] font-bold text-navy-900">
+              <span id="upload-progress-label">Mengunggah ke Google Drive...</span>
+              <span id="upload-progress-pct">0%</span>
+            </div>
+            <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div id="upload-progress-bar" class="h-full bg-navy-900 transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-200 flex items-center justify-end gap-2.5">
+          <button type="button" onclick="closeModal('modal-doc-form')" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-sm font-semibold transition">Batal</button>
+          <button type="submit" id="doc-submit-btn" class="px-5 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-sm font-bold shadow-xs transition flex items-center gap-2">
+            <i data-lucide="save" class="w-4 h-4 text-esdm-yellow"></i>
+            <span id="doc-submit-label">Simpan & Kirim Validasi</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL 2: PRATINJAU PDF GOOGLE DRIVE, METADATA & VALIDASI
+  ====================================================================== -->
+  <div id="modal-doc-preview" class="hidden fixed inset-0 z-[75] bg-navy-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 bg-navy-900 text-white flex items-center justify-between shrink-0 gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-8 h-8 rounded-lg bg-esdm-yellow/20 text-esdm-yellow flex items-center justify-center shrink-0">
+            <i data-lucide="file-search" class="w-4 h-4"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 id="preview-title" class="text-sm sm:text-base font-bold truncate">Pratinjau Dokumen Keuangan</h3>
+            <p id="preview-subtitle" class="text-[11px] text-slate-300 truncate">No SPM / SP2D</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <a id="preview-download-btn" href="#" target="_blank" rel="noopener noreferrer" class="hidden px-3 py-1.5 rounded-lg bg-esdm-yellow hover:bg-esdm-gold text-navy-950 text-xs font-extrabold transition items-center gap-1.5">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            Unduh PDF
+          </a>
+          <a id="preview-drive-btn" href="#" target="_blank" rel="noopener noreferrer" class="hidden px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition items-center gap-1.5">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            Buka di Google Drive
+          </a>
+          <button onclick="closeModal('modal-doc-preview')" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        <!-- Area Pratinjau PDF / Lembar Resmi -->
+        <div id="preview-pdf-pane" class="flex-1 bg-slate-200/80 p-4 sm:p-6 overflow-y-auto flex items-start justify-center"></div>
+
+        <!-- Panel Kanan: Metadata, Aksi Validasi, Riwayat (Non-Pengawas) -->
+        <div class="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col overflow-y-auto shrink-0">
+          <div class="p-5 space-y-5">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Status Verifikasi</span>
+                <span id="preview-status-badge"></span>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-2 text-xs">
+                <div class="flex justify-between gap-2"><span class="text-slate-500">Tahun Anggaran</span><span id="preview-meta-year" class="font-bold text-navy-900">-</span></div>
+                <div class="flex justify-between gap-2"><span class="text-slate-500">Jenis Dokumen</span><span id="preview-meta-type" class="font-bold text-navy-900">-</span></div>
+                <div class="flex justify-between gap-2"><span class="text-slate-500">Tanggal SPM</span><span id="preview-meta-date" class="font-bold text-navy-900">-</span></div>
+                <div class="flex justify-between gap-2"><span class="text-slate-500">Nominal</span><span id="preview-meta-amount" class="font-extrabold text-navy-900">-</span></div>
+                <div class="flex justify-between gap-2"><span class="text-slate-500">Diunggah Oleh</span><span id="preview-meta-uploader" class="font-semibold text-slate-700 text-right">-</span></div>
+                <div class="flex justify-between gap-2"><span class="text-slate-500">Nama Berkas</span><span id="preview-meta-file" class="font-mono text-[11px] text-blue-700 truncate max-w-[180px]">-</span></div>
+              </div>
+            </div>
+
+            <!-- Panel Validasi Langsung (Validator & Admin) -->
+            <div id="preview-validation-panel" class="hidden p-4 rounded-xl bg-yellow-50 border border-yellow-300 space-y-3">
+              <h4 class="text-xs font-extrabold text-navy-900 uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="stamp" class="w-4 h-4 text-amber-700"></i>
+                Keputusan Validasi
+              </h4>
+              <div>
+                <label for="validation-note-input" class="block text-[11px] font-semibold text-slate-700 mb-1">Catatan Validasi / Alasan Revisi</label>
+                <textarea id="validation-note-input" rows="2" placeholder="Wajib diisi jika mengembalikan (Perlu Revisi)..." class="w-full px-3 py-2 text-xs rounded-lg border border-yellow-300 bg-white focus:outline-none focus:ring-2 focus:ring-esdm-yellow"></textarea>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <button onclick="processValidation('Tervalidasi')" class="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5">
+                  <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                  Setujui
+                </button>
+                <button onclick="processValidation('Perlu Revisi')" class="py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5">
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                  Perlu Revisi
+                </button>
+              </div>
+            </div>
+
+            <!-- Riwayat Dokumen (Khusus Administrator) -->
+            <div id="preview-logs-section">
+              <h4 class="text-xs font-extrabold text-navy-900 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <i data-lucide="history" class="w-4 h-4 text-slate-500"></i>
+                Riwayat Dokumen
+              </h4>
+              <ol id="preview-logs-list" class="relative border-l border-slate-200 ml-2 space-y-4"></ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL 3: TAMBAH / EDIT PENGGUNA (ADMINISTRATOR)
+  ====================================================================== -->
+  <div id="modal-user-form" class="hidden fixed inset-0 z-[70] bg-navy-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+      <div class="px-5 py-4 bg-navy-900 text-white flex items-center justify-between">
+        <h3 id="modal-user-title" class="text-sm font-bold flex items-center gap-2">
+          <i data-lucide="user-plus" class="w-4 h-4 text-esdm-yellow"></i>
+          Tambah Akun Pegawai
+        </h3>
+        <button onclick="closeModal('modal-user-form')" class="p-1 rounded-lg text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <form id="user-form" class="p-5 space-y-4">
+        <input type="hidden" id="edit-user-id" />
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Nama Lengkap</label>
+          <input type="text" id="new-user-name" placeholder="Contoh: Ir. Budi Santoso, M.T." class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow" required />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">NIP</label>
+            <input type="text" id="new-user-nip" placeholder="198705122015031002" class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow" required />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Username / Email</label>
+            <input type="text" id="new-user-username" placeholder="budi.s" class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow" required />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Peran (Role)</label>
+            <select id="new-user-role" class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-esdm-yellow">
+              <option value="Operator">Operator</option>
+              <option value="Validator">Validator</option>
+              <option value="Pengawas">Pengawas</option>
+              <option value="Administrator">Administrator</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Unit / Subbagian</label>
+            <input type="text" id="new-user-unit" placeholder="Subbag Keuangan" class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow" required />
+          </div>
+        </div>
+        <div>
+          <label id="new-user-password-label" class="block text-xs font-bold text-slate-700 mb-1">Kata Sandi Awal</label>
+          <input type="text" id="new-user-password" placeholder="Masukkan kata sandi" class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow font-mono" />
+          <p id="new-user-password-hint" class="hidden text-[11px] text-slate-400 mt-1">Kosongkan bila tidak ingin mengganti kata sandi.</p>
+        </div>
+        <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onclick="closeModal('modal-user-form')" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold">Batal</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-bold">Simpan Pengguna</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL 4: RESET KATA SANDI PENGGUNA
+  ====================================================================== -->
+  <div id="modal-reset-pass" class="hidden fixed inset-0 z-[75] bg-navy-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden">
+      <div class="px-5 py-4 bg-navy-900 text-white flex items-center justify-between">
+        <h3 class="text-sm font-bold flex items-center gap-2">
+          <i data-lucide="key-round" class="w-4 h-4 text-esdm-yellow"></i>
+          Reset Kata Sandi
+        </h3>
+        <button onclick="closeModal('modal-reset-pass')" class="p-1 rounded-lg text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <form id="reset-pass-form" class="p-5 space-y-4">
+        <input type="hidden" id="reset-pass-user-id" />
+        <p class="text-xs text-slate-600">Masukkan kata sandi baru untuk akun <strong id="reset-pass-user-name" class="text-navy-900">-</strong>:</p>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Kata Sandi Baru</label>
+          <input type="text" id="reset-pass-input" placeholder="Minimal 6 karakter" minlength="6" class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-esdm-yellow font-mono" required />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('modal-reset-pass')" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold">Batal</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-bold">Simpan Sandi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL 5: KONFIRMASI AKSI (TANPA window.confirm)
+  ====================================================================== -->
+  <div id="modal-confirm" class="hidden fixed inset-0 z-[90] bg-navy-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-sm p-6 space-y-4">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 id="confirm-title" class="text-base font-bold text-navy-900">Konfirmasi Tindakan</h3>
+          <p id="confirm-message" class="text-xs text-slate-600 mt-1 leading-relaxed">Apakah Anda yakin ingin melanjutkan?</p>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('modal-confirm')" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold">Batal</button>
+        <button id="confirm-yes-btn" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs">Ya, Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       JAVASCRIPT APLIKASI PRODUKSI SIADIK PSDMBP
+  ====================================================================== -->
+  <script>
+    /**
+     * =========================================================================
+     * 1. KONFIGURASI PRODUKSI TERTANAM (GOOGLE APPS SCRIPT WEB APP)
+     * =========================================================================
+     */
+    const PRODUCTION_MODE = true;
+    const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzlfKyPb-3zOTsZRWrXKWQmTro1FGMhRpfoieTm4dnd_55OxOB8qEYv2Cxp9xOkO3VlZw/exec';
+    const GAS_CFG_KEY = 'SIADIK_PSDMBP_PROD_GAS_CFG';
+    const SESSION_KEY = 'SIADIK_PSDMBP_PROD_SESSION';
+
+    /**
+     * =========================================================================
+     * 2. LOGO RESMI BARU KEMENTERIAN ESDM (SVG AKURAT 4 KUADRAN)
+     * =========================================================================
+     */
+    const ESDM_NEW_LOGO_SVG = `
+      <svg viewBox="0 0 100 100" class="w-full h-full" xmlns="http://www.w3.org/2000/svg" aria-label="Logo Resmi Kementerian ESDM">
+        <path d="M50 2.5 C67 9 86.5 21.5 95.5 36.5 C97.5 56 89.5 79.5 76.5 93.5 C60 97.8 40 97.8 23.5 93.5 C10.5 79.5 2.5 56 4.5 36.5 C13.5 21.5 33 9 50 2.5 Z" fill="#000000"/>
+        <path d="M47.8 7.5 C34 13.2 17.8 24.5 10.2 37.2 C9.2 41.2 9.4 45.2 10.2 49.2 L41.5 47.7 C45.8 47.4 47.4 44.5 47.6 39.5 Z" fill="#FFE600"/>
+        <path d="M16.5 46.2 C16.2 42 19.5 33.8 23.8 28.4 L23.5 25.5 L28.2 21.5 L31.2 21.6 C35.8 18.2 41.2 16 45.2 15.6 C46.1 15.5 46.4 16.5 45.6 17.2 C41.6 20.4 37.8 23.2 35.2 25.8 C34.1 27 34.4 28.8 35.8 30.2 L46.6 41.2 L42.4 45.4 L31.2 34.2 C29.5 32.5 27.2 32.6 25.6 34.6 C22.5 38.4 19.8 42.6 18 46.6 C17.5 47.5 16.5 47.2 16.5 46.2 Z" fill="#000000"/>
+        <path d="M52.2 7.5 C66 13.2 82.2 24.5 89.8 37.2 C90.8 41.2 90.6 45.2 89.8 49.2 L58.5 47.7 C54.2 47.4 52.6 44.5 52.4 39.5 Z" fill="#FFE600"/>
+        <path d="M59.5 15.5 C66.2 17.8 67.8 23.5 66.2 31.2 C65 37 66.8 42.2 70.2 46.2 C70.8 47 70.1 47.8 69.1 47.6 C60.5 45.5 56.4 38.5 57.5 29.2 C58.2 23.8 59.5 20 59.5 15.5 Z" fill="#000000"/>
+        <path d="M68.2 18.8 C74.6 20.6 77.2 26.8 76 34.5 C75.2 39.4 76.2 42.8 78.2 45.5 C78.4 41.2 79.4 36.2 78.6 31.2 C77.8 26.4 77.2 24.2 78.6 23.5 C83.8 27.5 86 35.8 83.2 43.2 C81.8 46.8 79.5 48.2 77.4 48.8 C71.5 46 67.2 40 67.8 32.5 C68.3 26.8 69.2 22.8 68.2 18.8 Z" fill="#000000"/>
+        <path d="M10.5 52.6 L41.5 54.1 C45.8 54.4 47.4 57.2 47.7 62.2 L48.8 92.2 C39.5 92.2 31.2 91.2 25 89.2 C16.5 78.5 12 65.5 10.5 52.6 Z" fill="#FFE600"/>
+        <path d="M11.6 58.2 L34.8 59.5 C40.5 59.9 42.6 62.4 43 68.2 L43.8 91.8 L39.2 91.5 L38.5 69.2 C38.2 65.6 36.8 64.2 33 63.9 L12.8 62.8 Z" fill="#000000"/>
+        <path d="M14.2 67.8 L28.4 68.8 C32.6 69.1 34.4 71.2 34.8 75.8 L35.4 91 L31 90.4 L30.4 76.8 C30.2 74.2 29.1 73.2 26.6 73 L15.8 72.2 Z" fill="#000000"/>
+        <path d="M18.2 77.5 L23.2 77.9 C25.6 78.1 26.8 79.4 27 82.2 L27.4 89.6 L23.2 88.5 C21 85.2 19.4 81.5 18.2 77.5 Z" fill="#000000"/>
+        <path d="M89.5 52.6 L58.5 54.1 C54.2 54.4 52.6 57.2 52.3 62.2 L51.2 92.2 C60.5 92.2 68.8 91.2 75 89.2 C83.5 78.5 88 65.5 89.5 52.6 Z" fill="#FFE600"/>
+        <path d="M58.8 89.5 C56.2 77.5 58.2 65.5 64.5 61.2 C70 57.5 78.5 58.5 84.8 55.6 C85.8 55.1 86.4 56 86 57.2 C83.5 66.8 80.2 78.2 73.5 84.8 C69 89.2 63.8 90.2 58.8 89.5 Z" fill="#000000"/>
+        <path d="M59.6 88.8 C61.2 83.2 64.2 78.4 67.2 74.8 L63.5 74.8 C62.8 74.8 62.5 74 63.1 73.5 L75.6 63.8 C76.2 63.3 76.9 64.1 76.4 64.7 L69.8 71.8 L74.2 71.8 C74.9 71.8 75.2 72.6 74.6 73.1 L62.5 85.2 C61.6 86.2 60.5 87.5 59.6 88.8 Z" fill="#FFE600"/>
+      </svg>
+    `;
+
+    function applyDynamicFavicon() {
+      try {
+        const cleanSvg = ESDM_NEW_LOGO_SVG.replace(/\s+/g, ' ').trim();
+        const link = document.getElementById('dynamic-favicon');
+        if (link) link.href = `data:image/svg+xml;utf8,${encodeURIComponent(cleanSvg)}`;
+      } catch (e) {
+        console.warn('Favicon fallback:', e);
+      }
+    }
+
+    /**
+     * =========================================================================
+     * 3. REFERENSI SKRIP BACKEND GOOGLE APPS SCRIPT (CODE.GS)
+     *    DENGAN PENEGAKAN RBAC SERVER-SIDE KETAT & CRUD PENGGUNA LENGKAP
+     * =========================================================================
+     */
+    const GAS_CODE_GS_REFERENCE = `/**
+ * =========================================================================
+ * SIADIK PSDMBP — BACKEND PRODUKSI GOOGLE APPS SCRIPT (SHEETS + DRIVE)
+ * Pusat Sumber Daya Mineral, Batubara, dan Panas Bumi — Kementerian ESDM
+ * =========================================================================
+ * Mendukung penuh: ping (GET/POST), login, getAllData / syncData /
+ * getDashboardData, getAuditLogs, uploadDocument, validateDocument,
+ * deleteDocument, saveUser, createUser, updateUser, resetPassword,
+ * toggleUserStatus, deleteUser, markNotificationsRead.
+ *
+ * Penegakan RBAC Server-Side:
+ * - Menu & data Riwayat & Audit (getAuditLogs, auditLogs, logs dokumen)
+ *   HANYA dapat diakses oleh Administrator.
+ * - Peran Pengawas DIBLOKIR dari seluruh aksi mutasi dokumen & pengguna.
+ */
+
+const CONFIG = {
+  ROOT_FOLDER_ID: "",
+  ROOT_FOLDER_NAME: "SIADIK_PSDMBP_ARSIP",
+  SECRET_TOKEN: "",
+  SHEET_DOCS: "Documents",
+  SHEET_USERS: "Users",
+  SHEET_LOGS: "AuditLogs",
+  SHEET_NOTIFS: "Notifications"
+};
+
+function normalizeRoleServer(role) {
+  const raw = String(role || "").trim().toLowerCase();
+  if (raw === "administrator" || raw === "admin") return "Administrator";
+  if (raw === "operator") return "Operator";
+  if (raw === "validator") return "Validator";
+  if (raw === "pengawas") return "Pengawas";
+  return String(role || "").trim();
+}
+
+function getRequesterRole(payload) {
+  const rawRole = (payload && payload.actor && payload.actor.role)
+    ? payload.actor.role
+    : (payload && payload.role ? payload.role : "");
+  return normalizeRoleServer(rawRole);
+}
+
+function isPengawasServer(payload) {
+  return getRequesterRole(payload) === "Pengawas";
+}
+
+function isAdminServer(payload) {
+  return getRequesterRole(payload) === "Administrator";
+}
+
+function doGet(e) {
+  try {
+    ensureDatabaseReady();
+    const action = (e && e.parameter && e.parameter.action) ? e.parameter.action : "ping";
+    if (action === "ping") return handlePing();
+    return jsonResponse({
+      ok: true,
+      success: true,
+      app: "SIADIK PSDMBP Production GAS",
+      serverTime: Utilities.formatDate(new Date(), "Asia/Jakarta", "dd MMM yyyy, HH:mm") + " WIB"
+    });
+  } catch (err) {
+    const msg = err.message || String(err);
+    return jsonResponse({ ok: false, success: false, error: msg, message: msg });
+  }
+}
+
+function doPost(e) {
+  try {
+    const raw = (e && e.postData && e.postData.contents) ? e.postData.contents : "{}";
+    const payload = JSON.parse(raw);
+
+    if (CONFIG.SECRET_TOKEN && payload.token !== CONFIG.SECRET_TOKEN) {
+      return jsonResponse({ ok: false, success: false, error: "Token API tidak valid (Unauthorized).", message: "Token API tidak valid (Unauthorized)." });
+    }
+
+    ensureDatabaseReady();
+    const action = payload.action;
+
+    const mutationActions = [
+      "uploadDocument", "validateDocument", "deleteDocument",
+      "saveUser", "createUser", "updateUser", "resetPassword", "toggleUserStatus", "deleteUser"
+    ];
+    if (mutationActions.indexOf(action) !== -1 && isPengawasServer(payload)) {
+      const denyMsg = "Akses ditolak: Peran Pengawas hanya memiliki hak akses lihat dokumen (Read-Only).";
+      return jsonResponse({ ok: false, success: false, error: denyMsg, message: denyMsg });
+    }
+
+    switch (action) {
+      case "ping":
+        return handlePing();
+      case "login":
+        return handleLogin(payload);
+      case "getAllData":
+      case "syncData":
+      case "getDashboardData":
+      case "getData":
+      case "getDocuments":
+        return handleGetDashboardData(payload);
+      case "getAuditLogs":
+        return handleGetAuditLogs(payload);
+      case "uploadDocument":
+        return handleUploadDocument(payload);
+      case "validateDocument":
+        return handleValidateDocument(payload);
+      case "deleteDocument":
+        return handleDeleteDocument(payload);
+      case "saveUser":
+        return handleSaveUser(payload);
+      case "createUser":
+        return handleSaveUser(Object.assign({}, payload, { mode: "create" }));
+      case "updateUser":
+        return handleSaveUser(Object.assign({}, payload, { mode: "edit" }));
+      case "resetPassword":
+        return handleSaveUser(Object.assign({}, payload, { mode: "resetPassword" }));
+      case "toggleUserStatus":
+        return handleSaveUser(Object.assign({}, payload, { mode: "toggleActive" }));
+      case "deleteUser":
+        return handleDeleteUser(payload);
+      case "markNotificationsRead":
+        return handleMarkNotificationsRead(payload);
+      default:
+        return jsonResponse({ ok: false, success: false, error: "Aksi tidak dikenali: " + action, message: "Aksi tidak dikenali: " + action });
+    }
+  } catch (err) {
+    const msg = err.message || String(err);
+    return jsonResponse({ ok: false, success: false, error: msg, message: msg });
+  }
+}
+
+function jsonResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function ensureDatabaseReady() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const schemas = {
+    [CONFIG.SHEET_DOCS]: ["id","noSpm","noSp2d","type","year","date","amount","description","status","uploadedBy","fileName","driveFileId","driveUrl","rejectionNote","logsJson"],
+    [CONFIG.SHEET_USERS]: ["id","name","nip","username","passwordHash","role","unit","active"],
+    [CONFIG.SHEET_LOGS]: ["id","time","actor","role","noSpm","action"],
+    [CONFIG.SHEET_NOTIFS]: ["id","targetRoles","title","message","docId","time","read"]
+  };
+
+  Object.keys(schemas).forEach(function(sheetName) {
+    let sh = ss.getSheetByName(sheetName);
+    if (!sh) {
+      sh = ss.insertSheet(sheetName);
+      sh.appendRow(schemas[sheetName]);
+      sh.setFrozenRows(1);
+    }
+  });
+
+  const uSheet = ss.getSheetByName(CONFIG.SHEET_USERS);
+  if (uSheet.getLastRow() < 2) {
+    const defaultPass = hashPassword("psdmbp2026");
+    uSheet.appendRow(["u1", "Dr. Hendra Wijaya, M.Si.", "197804152005011001", "admin", defaultPass, "Administrator", "Bagian Umum & Keuangan", true]);
+    uSheet.appendRow(["u2", "Rina Kusumawati, S.E.", "199108222018022003", "operator", defaultPass, "Operator", "Subbag Perbendaharaan", true]);
+    uSheet.appendRow(["u3", "Agus Setiawan, S.Ak.", "198411092010121002", "validator", defaultPass, "Validator", "PPK & Verifikasi", true]);
+    uSheet.appendRow(["u4", "Dra. Siti Rahmawati", "197602182002122001", "pengawas", defaultPass, "Pengawas", "Satuan Pengawas Internal", true]);
+  }
+}
+
+function hashPassword(plain) {
+  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(plain));
+  return digest.map(function(b) { return ("0" + ((b < 0 ? b + 256 : b).toString(16))).slice(-2); }).join("");
+}
+
+function getRootFolder() {
+  if (CONFIG.ROOT_FOLDER_ID) return DriveApp.getFolderById(CONFIG.ROOT_FOLDER_ID);
+  const it = DriveApp.getFoldersByName(CONFIG.ROOT_FOLDER_NAME);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(CONFIG.ROOT_FOLDER_NAME);
+}
+
+function getOrCreateSubFolder(parent, name) {
+  const it = parent.getFoldersByName(name);
+  return it.hasNext() ? it.next() : parent.createFolder(name);
+}
+
+function handlePing() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const root = getRootFolder();
+  return jsonResponse({
+    ok: true,
+    success: true,
+    spreadsheetName: ss.getName(),
+    rootFolderName: root.getName(),
+    serverTime: Utilities.formatDate(new Date(), "Asia/Jakarta", "dd MMM yyyy, HH:mm") + " WIB"
+  });
+}
+
+function handleLogin(payload) {
+  const uname = String(payload.username || "").trim().toLowerCase();
+  const passHash = hashPassword(payload.password || "");
+  const users = readSheetObjects(CONFIG.SHEET_USERS);
+  const found = users.find(function(u) {
+    return (String(u.username).trim().toLowerCase() === uname || String(u.nip).trim() === uname) && u.passwordHash === passHash;
+  });
+
+  if (!found) return jsonResponse({ ok: false, success: false, error: "Username/Email/NIP atau kata sandi tidak sesuai.", message: "Username/Email/NIP atau kata sandi tidak sesuai." });
+  if (String(found.active) === "false") return jsonResponse({ ok: false, success: false, error: "Akun Anda sedang dinonaktifkan oleh Administrator.", message: "Akun Anda sedang dinonaktifkan oleh Administrator." });
+
+  const normalizedRole = normalizeRoleServer(found.role);
+  appendAuditLog(found.name, normalizedRole, "-", "Login ke sistem SIADIK PSDMBP.");
+  return jsonResponse({
+    ok: true,
+    success: true,
+    user: { id: found.id, name: found.name, nip: found.nip, username: found.username, role: normalizedRole, unit: found.unit, active: true }
+  });
+}
+
+function handleGetAuditLogs(payload) {
+  if (!isAdminServer(payload)) {
+    const denyMsg = "Akses ditolak: Riwayat & Audit hanya dapat diakses oleh Administrator.";
+    return jsonResponse({ ok: false, success: false, error: denyMsg, message: denyMsg });
+  }
+  return jsonResponse({ ok: true, success: true, auditLogs: readSheetObjects(CONFIG.SHEET_LOGS).reverse() });
+}
+
+function handleGetDashboardData(payload) {
+  const isAdmin = isAdminServer(payload);
+
+  const docs = readSheetObjects(CONFIG.SHEET_DOCS).map(function(d) {
+    d.amount = Number(d.amount) || 0;
+    d.year = String(d.year);
+    if (!isAdmin) {
+      d.logs = [];
+    } else {
+      try { d.logs = JSON.parse(d.logsJson || "[]"); } catch(e) { d.logs = []; }
+    }
+    delete d.logsJson;
+    return d;
+  });
+
+  const users = isAdmin ? readSheetObjects(CONFIG.SHEET_USERS).map(function(u) {
+    return {
+      id: u.id, name: u.name, nip: u.nip, username: u.username,
+      role: normalizeRoleServer(u.role), unit: u.unit, active: String(u.active) !== "false"
+    };
+  }) : [];
+
+  const auditLogs = isAdmin ? readSheetObjects(CONFIG.SHEET_LOGS).reverse() : [];
+
+  const notifications = readSheetObjects(CONFIG.SHEET_NOTIFS).reverse().map(function(n) {
+    try { n.targetRoles = JSON.parse(n.targetRoles || "[]"); } catch(e) { n.targetRoles = []; }
+    n.read = String(n.read) === "true";
+    return n;
+  });
+
+  return jsonResponse({ ok: true, success: true, documents: docs, users: users, auditLogs: auditLogs, notifications: notifications });
+}
+
+function handleUploadDocument(payload) {
+  const doc = payload.document;
+  const actor = payload.actor || { name: "Operator", role: "Operator" };
+  const actorRole = normalizeRoleServer(actor.role);
+  const nowStr = Utilities.formatDate(new Date(), "Asia/Jakarta", "dd MMM yyyy, HH:mm");
+
+  let driveFileId = doc.driveFileId || "";
+  let driveUrl = doc.driveUrl || "";
+
+  if (payload.fileBase64 && payload.fileName) {
+    const root = getRootFolder();
+    const yearFolder = getOrCreateSubFolder(root, "TA_" + doc.year);
+    const typeFolder = getOrCreateSubFolder(yearFolder, doc.type);
+    const bytes = Utilities.base64Decode(payload.fileBase64);
+    const blob = Utilities.newBlob(bytes, "application/pdf", payload.fileName);
+    const createdFile = typeFolder.createFile(blob);
+    createdFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    driveFileId = createdFile.getId();
+    driveUrl = createdFile.getUrl();
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(CONFIG.SHEET_DOCS);
+  const rows = sh.getDataRange().getValues();
+  let targetRow = -1;
+
+  if (doc.id) {
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === doc.id) { targetRow = i + 1; break; }
+    }
+  }
+
+  const docId = targetRow > 0 ? doc.id : ("DOC-" + doc.year + "-" + String(Date.now()).slice(-5));
+  let logs = [];
+  if (targetRow > 0) {
+    try { logs = JSON.parse(rows[targetRow - 1][14] || "[]"); } catch(e) {}
+  }
+
+  const actionText = targetRow > 0 ? "Mengunggah revisi / memperbarui dokumen arsip." : "Mengunggah dokumen arsip PDF baru ke Google Drive.";
+  logs.push({ time: nowStr, actor: actor.name + " (" + actorRole + ")", action: actionText });
+
+  const rowValues = [
+    docId, doc.noSpm, doc.noSp2d || "-", doc.type, String(doc.year), doc.date, Number(doc.amount),
+    doc.description, "Menunggu Verifikasi", doc.uploadedBy || actor.name,
+    payload.fileName || doc.fileName || "", driveFileId, driveUrl, "", JSON.stringify(logs)
+  ];
+
+  if (targetRow > 0) {
+    sh.getRange(targetRow, 1, 1, rowValues.length).setValues([rowValues]);
+  } else {
+    sh.appendRow(rowValues);
+  }
+
+  appendAuditLog(actor.name, actorRole, doc.noSpm, actionText);
+  appendNotification(["Validator", "Administrator"], "Dokumen Menunggu Verifikasi", actor.name + " mengunggah " + doc.noSpm, docId);
+
+  return jsonResponse({ ok: true, success: true, id: docId, driveFileId: driveFileId, driveUrl: driveUrl });
+}
+
+function handleValidateDocument(payload) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(CONFIG.SHEET_DOCS);
+  const rows = sh.getDataRange().getValues();
+  const nowStr = Utilities.formatDate(new Date(), "Asia/Jakarta", "dd MMM yyyy, HH:mm");
+  const actor = payload.actor || { name: "Validator", role: "Validator" };
+  const actorRole = normalizeRoleServer(actor.role);
+
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] === payload.docId) {
+      const noSpm = rows[i][1];
+      let logs = [];
+      try { logs = JSON.parse(rows[i][14] || "[]"); } catch(e) {}
+      const actionMsg = payload.decision === "Tervalidasi"
+        ? "Menyetujui dokumen (Tervalidasi). " + (payload.note || "")
+        : "Mengembalikan dokumen (Perlu Revisi). Catatan: " + (payload.note || "");
+
+      logs.push({ time: nowStr, actor: actor.name + " (" + actorRole + ")", action: actionMsg });
+      sh.getRange(i + 1, 9).setValue(payload.decision);
+      sh.getRange(i + 1, 14).setValue(payload.decision === "Perlu Revisi" ? (payload.note || "") : "");
+      sh.getRange(i + 1, 15).setValue(JSON.stringify(logs));
+
+      appendAuditLog(actor.name, actorRole, noSpm, actionMsg);
+      appendNotification(["Operator", "Administrator"], "Status: " + payload.decision, noSpm + " — " + actionMsg, payload.docId);
+      return jsonResponse({ ok: true, success: true });
+    }
+  }
+  return jsonResponse({ ok: false, success: false, error: "Dokumen tidak ditemukan.", message: "Dokumen tidak ditemukan." });
+}
+
+function handleDeleteDocument(payload) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(CONFIG.SHEET_DOCS);
+  const rows = sh.getDataRange().getValues();
+  const actor = payload.actor || { name: "Administrator", role: "Administrator" };
+  const actorRole = normalizeRoleServer(actor.role);
+
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] === payload.docId) {
+      const noSpm = rows[i][1];
+      const driveId = rows[i][11];
+      if (driveId) {
+        try { DriveApp.getFileById(driveId).setTrashed(true); } catch(e) {}
+      }
+      sh.deleteRow(i + 1);
+      appendAuditLog(actor.name, actorRole, noSpm, "Menghapus dokumen arsip secara permanen.");
+      return jsonResponse({ ok: true, success: true });
+    }
+  }
+  return jsonResponse({ ok: false, success: false, error: "Dokumen tidak ditemukan.", message: "Dokumen tidak ditemukan." });
+}
+
+function handleSaveUser(payload) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(CONFIG.SHEET_USERS);
+  const rows = sh.getDataRange().getValues();
+  const actor = payload.actor || { name: "Administrator", role: "Administrator" };
+  const actorRole = normalizeRoleServer(actor.role);
+
+  if (payload.mode === "toggleActive") {
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === payload.userId) {
+        const nextVal = String(rows[i][7]) === "false";
+        sh.getRange(i + 1, 8).setValue(nextVal);
+        appendAuditLog(actor.name, actorRole, rows[i][3], "Mengubah status akun menjadi " + (nextVal ? "Aktif" : "Nonaktif"));
+        return jsonResponse({ ok: true, success: true, active: nextVal });
+      }
+    }
+    return jsonResponse({ ok: false, success: false, error: "Pengguna tidak ditemukan.", message: "Pengguna tidak ditemukan." });
+  }
+
+  if (payload.mode === "resetPassword") {
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === payload.userId) {
+        sh.getRange(i + 1, 5).setValue(hashPassword(payload.newPassword));
+        appendAuditLog(actor.name, actorRole, rows[i][3], "Melakukan reset kata sandi pengguna.");
+        return jsonResponse({ ok: true, success: true });
+      }
+    }
+    return jsonResponse({ ok: false, success: false, error: "Pengguna tidak ditemukan.", message: "Pengguna tidak ditemukan." });
+  }
+
+  if (payload.mode === "edit" && payload.user && payload.user.id) {
+    const u = payload.user;
+    const targetRole = normalizeRoleServer(u.role);
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === u.id) {
+        sh.getRange(i + 1, 2).setValue(u.name);
+        sh.getRange(i + 1, 3).setValue(u.nip);
+        sh.getRange(i + 1, 4).setValue(u.username);
+        if (u.password) sh.getRange(i + 1, 5).setValue(hashPassword(u.password));
+        sh.getRange(i + 1, 6).setValue(targetRole);
+        sh.getRange(i + 1, 7).setValue(u.unit);
+        appendAuditLog(actor.name, actorRole, u.username, "Memperbarui profil & peran pengguna (" + targetRole + ").");
+        return jsonResponse({ ok: true, success: true });
+      }
+    }
+    return jsonResponse({ ok: false, success: false, error: "Pengguna tidak ditemukan.", message: "Pengguna tidak ditemukan." });
+  }
+
+  const u = payload.user;
+  const targetRole = normalizeRoleServer(u.role);
+  const newId = "u-" + Date.now();
+  sh.appendRow([newId, u.name, u.nip, u.username, hashPassword(u.password || "psdmbp2026"), targetRole, u.unit, true]);
+  appendAuditLog(actor.name, actorRole, u.username, "Menambahkan pengguna baru (" + targetRole + ").");
+  return jsonResponse({ ok: true, success: true, id: newId });
+}
+
+function handleDeleteUser(payload) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(CONFIG.SHEET_USERS);
+  const rows = sh.getDataRange().getValues();
+  const actor = payload.actor || { name: "Administrator", role: "Administrator" };
+  const actorRole = normalizeRoleServer(actor.role);
+
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] === payload.userId) {
+      if (String(rows[i][3]).toLowerCase() === "admin") {
+        return jsonResponse({ ok: false, success: false, error: "Akun Administrator utama tidak dapat dihapus.", message: "Akun Administrator utama tidak dapat dihapus." });
+      }
+      const uname = rows[i][3];
+      sh.deleteRow(i + 1);
+      appendAuditLog(actor.name, actorRole, uname, "Menghapus akun pengguna secara permanen.");
+      return jsonResponse({ ok: true, success: true });
+    }
+  }
+  return jsonResponse({ ok: false, success: false, error: "Pengguna tidak ditemukan.", message: "Pengguna tidak ditemukan." });
+}
+
+function handleMarkNotificationsRead(payload) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(CONFIG.SHEET_NOTIFS);
+  const rows = sh.getDataRange().getValues();
+  const reqRole = normalizeRoleServer(payload.role);
+  for (let i = 1; i < rows.length; i++) {
+    if (payload.notifId && rows[i][0] === payload.notifId) {
+      sh.getRange(i + 1, 7).setValue(true);
+      break;
+    } else if (!payload.notifId && reqRole) {
+      try {
+        const targets = JSON.parse(rows[i][1] || "[]").map(normalizeRoleServer);
+        if (targets.indexOf(reqRole) !== -1) sh.getRange(i + 1, 7).setValue(true);
+      } catch(e) {}
+    }
+  }
+  return jsonResponse({ ok: true, success: true });
+}
+
+function appendAuditLog(actorName, role, noSpm, action) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.SHEET_LOGS);
+  const nowStr = Utilities.formatDate(new Date(), "Asia/Jakarta", "dd MMM yyyy, HH:mm");
+  sh.appendRow(["LOG-" + Date.now(), nowStr, actorName, normalizeRoleServer(role), noSpm || "-", action]);
+}
+
+function appendNotification(targetRoles, title, message, docId) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.SHEET_NOTIFS);
+  const nowStr = Utilities.formatDate(new Date(), "Asia/Jakarta", "dd MMM yyyy, HH:mm");
+  sh.appendRow(["NTF-" + Date.now(), JSON.stringify(targetRoles), title, message, docId || "", nowStr, false]);
+}
+
+function readSheetObjects(sheetName) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  const values = sh.getDataRange().getValues();
+  if (values.length < 2) return [];
+  const headers = values[0];
+  return values.slice(1).map(function(row) {
+    const obj = {};
+    headers.forEach(function(h, idx) { obj[h] = row[idx]; });
+    return obj;
+  });
+}`;
+
+    /**
+     * =========================================================================
+     * 4. GAS API CLIENT (CORS-SAFE TEXT/PLAIN + REDIRECT FOLLOW + TIMEOUT)
+     * =========================================================================
+     */
+    const GasApi = {
+      getConfig() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(GAS_CFG_KEY) || '{}');
+          return {
+            gasUrl: (saved.gasUrl || DEFAULT_GAS_URL).trim(),
+            token: (saved.token || '').trim()
+          };
+        } catch (e) {
+          return { gasUrl: DEFAULT_GAS_URL, token: '' };
+        }
+      },
+
+      saveConfig(gasUrl, token) {
+        const clean = { gasUrl: (gasUrl || DEFAULT_GAS_URL).trim(), token: (token || '').trim() };
+        localStorage.setItem(GAS_CFG_KEY, JSON.stringify(clean));
+        return clean;
+      },
+
+      async post(action, payload = {}, customCfg = null, timeoutMs = 45000) {
+        const cfg = customCfg || this.getConfig();
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+          const res = await fetch(cfg.gasUrl, {
+            method: 'POST',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action,
+              token: cfg.token || '',
+              ...payload
+            }),
+            signal: controller.signal
+          });
+
+          if (!res.ok) throw new Error(`HTTP Error ${res.status}: Gagal menghubungi Google Apps Script.`);
+          const data = await res.json();
+          if (!data || data.ok === false || data.success === false) {
+            throw new Error((data && (data.error || data.message)) ? (data.error || data.message) : 'Terjadi kesalahan pada server GAS.');
+          }
+          return data;
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            throw new Error('Waktu tunggu habis (timeout). Periksa koneksi internet atau coba lagi.');
+          }
+          throw err;
+        } finally {
+          clearTimeout(timer);
+        }
+      },
+
+      async ping(customCfg = null) {
+        return await this.post('ping', {}, customCfg, 18000);
+      }
+    };
+
+    /**
+     * =========================================================================
+     * 5. STATE APLIKASI & UTILITAS UMUM
+     * =========================================================================
+     */
+    let appState = {
+      user: null,
+      selectedYear: '2026',
+      currentView: 'dashboard',
+      settingsTab: 'users',
+      documents: [],
+      users: [],
+      auditLogs: [],
+      notifications: []
+    };
+
+    let currentPreviewDocId = null;
+    let pendingSelectedPdf = null;
+    const sessionPdfBlobs = {};
+    let aktivitasChartInstance = null;
+    let statusChartInstance = null;
+
+    function safeIcons(opts) {
+      try {
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          window.lucide.createIcons(opts);
+        }
+      } catch (e) {}
+    }
+
+    function escapeHtml(val) {
+      return String(val === undefined || val === null ? '' : val)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function normalizeRole(role) {
+      const raw = String(role || '').trim().toLowerCase();
+      if (raw === 'administrator' || raw === 'admin') return 'Administrator';
+      if (raw === 'operator') return 'Operator';
+      if (raw === 'validator') return 'Validator';
+      if (raw === 'pengawas') return 'Pengawas';
+      return String(role || '').trim();
+    }
+
+    function isPengawasRole(role) {
+      return normalizeRole(role) === 'Pengawas';
+    }
+
+    function isAdminRole(role) {
+      return normalizeRole(role) === 'Administrator';
+    }
+
+    function normalizeAuditEntry(item) {
+      return {
+        id: item.id || '',
+        time: item.time || item.timestamp || item.waktu || '-',
+        actor: item.actor || item.user || item.pengguna || '-',
+        role: normalizeRole(item.role || item.peran || ''),
+        noSpm: item.noSpm || item.no_spm || item.ref || item.referensi || '-',
+        action: item.action || item.aktivitas || item.detail || item.keterangan || '-'
+      };
+    }
+
+    function extractDriveFileId(doc) {
+      if (!doc) return '';
+      if (doc.driveFileId && String(doc.driveFileId).trim()) return String(doc.driveFileId).trim();
+      if (doc.fileId && String(doc.fileId).trim()) return String(doc.fileId).trim();
+      const url = String(doc.driveUrl || doc.fileUrl || '').trim();
+      if (!url) return '';
+      const match1 = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+      if (match1) return match1[1];
+      const match2 = url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+      if (match2) return match2[1];
+      return '';
+    }
+
+    function formatRupiah(num) {
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0
+      }).format(Number(num) || 0);
+    }
+
+    function formatDateIndo(dateStr) {
+      if (!dateStr) return '-';
+      const raw = String(dateStr).slice(0, 10);
+      const parts = raw.split('-');
+      if (parts.length !== 3) return dateStr;
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      return `${parts[2]} ${months[parseInt(parts[1], 10) - 1] || ''} ${parts[0]}`;
+    }
+
+    function getCurrentTimestampIndo() {
+      const now = new Date();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      return `${String(now.getDate()).padStart(2, '0')} ${months[now.getMonth()]} ${now.getFullYear()}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function getStatusBadgeHTML(status) {
+      if (status === 'Tervalidasi') {
+        return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200"><i data-lucide="check-circle-2" class="w-3 h-3"></i>Tervalidasi</span>`;
+      }
+      if (status === 'Perlu Revisi') {
+        return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200"><i data-lucide="alert-circle" class="w-3 h-3"></i>Perlu Revisi</span>`;
+      }
+      return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-yellow-100 text-amber-900 border border-yellow-300"><i data-lucide="clock" class="w-3 h-3"></i>Menunggu Verifikasi</span>`;
+    }
+
+    function getRoleBadgeHTML(role) {
+      const norm = normalizeRole(role);
+      const map = {
+        Administrator: 'bg-navy-900 text-esdm-yellow border-navy-800',
+        Operator: 'bg-blue-100 text-blue-800 border-blue-200',
+        Validator: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        Pengawas: 'bg-purple-100 text-purple-800 border-purple-200'
+      };
+      return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold border ${map[norm] || 'bg-slate-100 text-slate-700'}">${escapeHtml(norm)}</span>`;
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const styles = {
+        success: { bg: 'bg-navy-900 text-white border-emerald-400', icon: 'check-circle-2', iconColor: 'text-emerald-400' },
+        error: { bg: 'bg-navy-900 text-white border-rose-500', icon: 'alert-circle', iconColor: 'text-rose-400' },
+        info: { bg: 'bg-navy-900 text-white border-esdm-yellow', icon: 'info', iconColor: 'text-esdm-yellow' }
+      };
+      const st = styles[type] || styles.info;
+      const el = document.createElement('div');
+      el.className = `pointer-events-auto animate-toast flex items-start gap-3 p-3.5 rounded-xl shadow-xl border-l-4 ${st.bg}`;
+      el.innerHTML = `<i data-lucide="${st.icon}" class="w-4 h-4 mt-0.5 shrink-0 ${st.iconColor}"></i><p class="text-xs font-medium leading-snug flex-1">${escapeHtml(message)}</p>`;
+      container.appendChild(el);
+      safeIcons({ nodes: [el] });
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(20px)';
+        el.style.transition = 'all 0.25s ease';
+        setTimeout(() => el.remove(), 260);
+      }, 4000);
+    }
+
+    function setGlobalLoader(show, title = 'Menyinkronkan Data...', subtitle = 'Menghubungi Google Apps Script') {
+      document.getElementById('loader-title').textContent = title;
+      document.getElementById('loader-subtitle').textContent = subtitle;
+      document.getElementById('global-loader').classList.toggle('hidden', !show);
+    }
+
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const isPass = input.type === 'password';
+      input.type = isPass ? 'text' : 'password';
+      btn.innerHTML = `<i data-lucide="${isPass ? 'eye-off' : 'eye'}" class="w-4 h-4"></i>`;
+      safeIcons({ nodes: [btn] });
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    }
+
+    function setConnectionStatusUI(state, customMsg = '') {
+      const badge = document.getElementById('conn-status-badge');
+      const dot = document.getElementById('conn-status-dot');
+      const label = document.getElementById('conn-status-label');
+      if (!badge) return;
+
+      if (state === 'syncing') {
+        badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border bg-yellow-50 border-yellow-300 text-amber-800';
+        dot.className = 'w-2 h-2 rounded-full bg-amber-500 animate-ping';
+        label.textContent = customMsg || 'Menyinkronkan...';
+      } else if (state === 'error') {
+        badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border bg-rose-50 border-rose-300 text-rose-800';
+        dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+        label.textContent = 'Gangguan Koneksi';
+        badge.title = customMsg;
+      } else {
+        badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border bg-emerald-50 border-emerald-200 text-emerald-800';
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+        label.textContent = 'Terhubung GAS';
+        badge.title = 'Terhubung ke Google Sheets & Google Drive';
+      }
+    }
+
+    function getDocsBySelectedYear() {
+      if (appState.selectedYear === 'ALL') return appState.documents;
+      return appState.documents.filter(d => String(d.year) === String(appState.selectedYear));
+    }
+
+    /**
+     * =========================================================================
+     * 6. SESI LOGIN, HEALTH CHECK & SINKRONISASI DATA SERVER GAS
+     * =========================================================================
+     */
+    function loadSavedSession() {
+      try {
+        const raw = sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.user && parsed.user.role) {
+          parsed.user.role = normalizeRole(parsed.user.role);
+          return parsed;
+        }
+      } catch (e) {
+        console.warn('Sesi tersimpan tidak valid:', e);
+      }
+      return null;
+    }
+
+    function saveSession(user, rememberMe) {
+      const payload = JSON.stringify({ user: { ...user, role: normalizeRole(user.role) }, savedAt: Date.now() });
+      sessionStorage.setItem(SESSION_KEY, payload);
+      if (rememberMe) {
+        localStorage.setItem(SESSION_KEY, payload);
+      } else {
+        localStorage.removeItem(SESSION_KEY);
+      }
+    }
+
+    function clearSession() {
+      sessionStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(SESSION_KEY);
+    }
+
+    async function checkGasServerHealth() {
+      const dot = document.getElementById('login-server-dot');
+      const txt = document.getElementById('login-server-text');
+      if (!dot || !txt) return;
+      dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0';
+      txt.textContent = 'Memeriksa koneksi server GAS...';
+      try {
+        const res = await GasApi.ping();
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0';
+        txt.textContent = `Server Aktif${res.spreadsheetName ? ' • ' + res.spreadsheetName : ''}`;
+      } catch (err) {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0';
+        txt.textContent = 'Server belum merespons. Cek izin deploy Web App GAS.';
+      }
+    }
+
+    async function syncDataFromServer(showFeedback = false) {
+      if (!appState.user) return;
+      const normalizedRole = normalizeRole(appState.user.role);
+      appState.user.role = normalizedRole;
+
+      const syncIcon = document.getElementById('sync-icon');
+      if (syncIcon) syncIcon.classList.add('animate-spin');
+      setConnectionStatusUI('syncing', 'Menyinkronkan...');
+
+      try {
+        const data = await GasApi.post('getDashboardData', {
+          role: normalizedRole,
+          actor: { name: appState.user.name, role: normalizedRole }
+        });
+
+        const rawDocs = Array.isArray(data.documents) ? data.documents : [];
+        if (!isAdminRole(normalizedRole)) {
+          // Hanya Administrator yang diizinkan menerima data Riwayat & Audit serta daftar pengguna
+          appState.documents = rawDocs.map(d => ({ ...d, logs: [] }));
+          appState.users = [];
+          appState.auditLogs = [];
+        } else {
+          appState.documents = rawDocs;
+          appState.users = Array.isArray(data.users)
+            ? data.users.map(u => ({ ...u, role: normalizeRole(u.role) }))
+            : [];
+          const rawLogs = data.auditLogs || data.audit_logs || data.logs || data.riwayat || [];
+          let normalizedLogs = Array.isArray(rawLogs) ? rawLogs.map(normalizeAuditEntry) : [];
+
+          if (normalizedLogs.length === 0) {
+            try {
+              const auditRes = await GasApi.post('getAuditLogs', {
+                role: normalizedRole,
+                actor: { name: appState.user.name, role: normalizedRole }
+              });
+              const fbLogs = auditRes.auditLogs || auditRes.audit_logs || auditRes.logs || auditRes.riwayat || [];
+              if (Array.isArray(fbLogs)) {
+                normalizedLogs = fbLogs.map(normalizeAuditEntry);
+              }
+            } catch (auditErr) {
+              console.warn('Fallback getAuditLogs dilewati:', auditErr.message);
+            }
+          }
+          appState.auditLogs = normalizedLogs;
+        }
+
+        appState.notifications = Array.isArray(data.notifications) ? data.notifications : [];
+        setConnectionStatusUI('connected');
+        renderSidebar();
+        renderNotifications();
+        renderCurrentView();
+        if (showFeedback) showToast('Data berhasil disinkronkan dengan Google Sheets & Drive.', 'success');
+      } catch (err) {
+        setConnectionStatusUI('error', 'Sinkronisasi gagal: ' + err.message);
+        if (showFeedback) showToast('Gagal menyinkronkan data: ' + err.message, 'error');
+      } finally {
+        if (syncIcon) syncIcon.classList.remove('animate-spin');
+      }
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+      const rememberMe = document.getElementById('login-remember').checked;
+      const errBox = document.getElementById('login-error-box');
+      const errText = document.getElementById('login-error-text');
+
+      errBox.classList.add('hidden');
+      setGlobalLoader(true, 'Memverifikasi Akun...', 'Menghubungi server Google Apps Script');
+
+      try {
+        const res = await GasApi.post('login', { username, password });
+        if (!res.user || !res.user.role) {
+          throw new Error('Data profil akun tidak lengkap dari server.');
+        }
+
+        res.user.role = normalizeRole(res.user.role);
+        appState.user = res.user;
+        appState.currentView = 'dashboard';
+        saveSession(res.user, rememberMe);
+
+        setGlobalLoader(true, 'Memuat Arsip Keuangan...', 'Sinkronisasi Google Sheets & Drive');
+        document.getElementById('login-view').classList.add('hidden');
+        document.getElementById('app-shell').classList.remove('hidden');
+
+        await syncDataFromServer(false);
+        showToast(`Selamat datang, ${res.user.name} (${res.user.role}).`, 'success');
+      } catch (err) {
+        errText.textContent = err.message || 'Gagal masuk ke sistem.';
+        errBox.classList.remove('hidden');
+        showToast(err.message || 'Login gagal.', 'error');
+      } finally {
+        setGlobalLoader(false);
+      }
+    });
+
+    function logout() {
+      clearSession();
+      appState.user = null;
+      appState.documents = [];
+      appState.users = [];
+      appState.auditLogs = [];
+      appState.notifications = [];
+      document.getElementById('app-shell').classList.add('hidden');
+      document.getElementById('login-view').classList.remove('hidden');
+      document.getElementById('login-password').value = '';
+      checkGasServerHealth();
+      safeIcons();
+      showToast('Anda telah keluar dari SIADIK PSDMBP.', 'info');
+    }
+
+    function handleYearChange(year) {
+      appState.selectedYear = year;
+      renderSidebar();
+      renderCurrentView();
+      showToast(`Filter aktif: ${year === 'ALL' ? 'Semua Tahun Anggaran' : 'Tahun Anggaran ' + year}.`, 'info');
+    }
+
+    /**
+     * =========================================================================
+     * 7. RBAC KETAT (CASE-INSENSITIVE) & NAVIGASI SIDEBAR
+     *    - Administrator : Dashboard, Arsip, Validasi, Riwayat & Audit, Laporan, Pengaturan
+     *    - Operator      : Dashboard, Arsip, Laporan
+     *    - Validator     : Dashboard, Arsip, Validasi, Laporan
+     *    - Pengawas      : HANYA Dashboard & Arsip Dokumen (Strict Read-Only)
+     * =========================================================================
+     */
+    const ROLE_PERMISSIONS = {
+      Administrator: ['dashboard', 'arsip', 'validasi', 'riwayat', 'laporan', 'pengaturan'],
+      Operator: ['dashboard', 'arsip', 'laporan'],
+      Validator: ['dashboard', 'arsip', 'validasi', 'laporan'],
+      Pengawas: ['dashboard', 'arsip']
+    };
+
+    function hasViewAccess(viewName) {
+      if (!appState.user) return false;
+      const role = normalizeRole(appState.user.role);
+      const allowed = ROLE_PERMISSIONS[role] || ['dashboard'];
+      return allowed.includes(viewName);
+    }
+
+    function navigate(viewName) {
+      if (!appState.user) return;
+      const role = normalizeRole(appState.user.role);
+      if (!hasViewAccess(viewName)) {
+        if (viewName === 'riwayat') {
+          showToast('Akses ditolak: Menu Riwayat & Audit hanya dapat diakses oleh Administrator.', 'error');
+        } else if (isPengawasRole(role)) {
+          showToast('Akses ditolak: Peran Pengawas hanya diperbolehkan melihat Dashboard dan Arsip Dokumen.', 'error');
+        } else {
+          showToast(`Peran ${role} tidak memiliki hak akses ke menu tersebut.`, 'error');
+        }
+        appState.currentView = isPengawasRole(role) ? 'arsip' : 'dashboard';
+        toggleMobileSidebar(false);
+        renderSidebar();
+        renderCurrentView();
+        return;
+      }
+      appState.currentView = viewName;
+      toggleMobileSidebar(false);
+      renderSidebar();
+      renderCurrentView();
+    }
+
+    function toggleMobileSidebar(open) {
+      document.getElementById('sidebar').classList.toggle('-translate-x-full', !open);
+      document.getElementById('sidebar-backdrop').classList.toggle('hidden', !open);
+    }
+
+    function renderSidebar() {
+      if (!appState.user) return;
+      const role = normalizeRole(appState.user.role);
+      const pendingCount = getDocsBySelectedYear().filter(d => d.status === 'Menunggu Verifikasi').length;
+
+      const menuItems = [
+        { id: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
+        { id: 'arsip', label: 'Arsip Dokumen', icon: 'folder-open' },
+        { id: 'validasi', label: 'Validasi', icon: 'shield-check', badge: pendingCount },
+        { id: 'riwayat', label: 'Riwayat & Audit', icon: 'history' },
+        { id: 'laporan', label: 'Laporan', icon: 'bar-chart-3' },
+        { id: 'pengaturan', label: 'Pengaturan', icon: 'settings' }
+      ];
+
+      document.getElementById('sidebar-nav').innerHTML = menuItems
+        .filter(item => hasViewAccess(item.id))
+        .map(item => {
+          const isActive = appState.currentView === item.id;
+          const activeClass = isActive
+            ? 'bg-esdm-yellow text-navy-950 font-extrabold shadow-md'
+            : 'text-slate-300 hover:bg-navy-800 hover:text-white font-medium';
+          const badgeHtml = item.badge > 0
+            ? `<span class="ml-auto px-2 py-0.5 text-[10px] font-extrabold rounded-full ${isActive ? 'bg-navy-950 text-esdm-yellow' : 'bg-esdm-yellow text-navy-950'}">${item.badge}</span>`
+            : '';
+          return `
+            <button onclick="navigate('${item.id}')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition ${activeClass}">
+              <i data-lucide="${item.icon}" class="w-4 h-4 shrink-0"></i>
+              <span class="truncate">${item.label}</span>
+              ${badgeHtml}
+            </button>
+          `;
+        }).join('');
+
+      const initials = String(appState.user.name || 'US').split(' ').slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
+      document.getElementById('sidebar-user-avatar').textContent = initials;
+      document.getElementById('sidebar-user-name').textContent = appState.user.name;
+      document.getElementById('sidebar-user-role').textContent = role;
+
+      document.getElementById('topbar-avatar').textContent = initials;
+      document.getElementById('topbar-user-name').textContent = appState.user.name;
+      document.getElementById('topbar-user-role').textContent = role;
+      document.getElementById('fiscal-year-select').value = appState.selectedYear;
+    }
+
+    /**
+     * =========================================================================
+     * 8. VIEW 1: DASHBOARD, KPI & GRAFIK
+     * =========================================================================
+     */
+    function renderDashboard() {
+      const docs = getDocsBySelectedYear();
+      const role = normalizeRole(appState.user.role);
+      const taText = appState.selectedYear === 'ALL' ? 'Semua Tahun Anggaran' : `Tahun Anggaran ${appState.selectedYear}`;
+
+      const totalDocs = docs.length;
+      const totalVal = docs.reduce((s, d) => s + (Number(d.amount) || 0), 0);
+      const verified = docs.filter(d => d.status === 'Tervalidasi').length;
+      const pending = docs.filter(d => d.status === 'Menunggu Verifikasi').length;
+      const rejected = docs.filter(d => d.status === 'Perlu Revisi').length;
+
+      document.getElementById('banner-ta-label').textContent = taText;
+      document.getElementById('banner-role-badge').textContent = role;
+      document.getElementById('banner-user-fullname').textContent = appState.user.name;
+
+      const summaryMap = {
+        Administrator: `Kendali penuh arsip keuangan PSDMBP (${taText}). Tercatat ${totalDocs} arsip, ${pending} menunggu verifikasi, dan ${rejected} perlu revisi.`,
+        Operator: `Unggah berkas PDF SPM/SP2D baru ke Google Drive dan segera tindak lanjuti ${rejected} dokumen berstatus Perlu Revisi pada ${taText}.`,
+        Validator: `Terdapat ${pending} dokumen pada antrean Menunggu Verifikasi (${taText}) yang memerlukan pemeriksaan kelengkapan PDF.`,
+        Pengawas: `Akses baca-saja (Read-Only): pantau ringkasan dan pratinjau dokumen PDF yang telah diunggah pada ${taText}.`
+      };
+      document.getElementById('banner-summary').textContent = summaryMap[role] || '';
+
+      let actionsHtml = '';
+      if (role === 'Administrator' || role === 'Operator') {
+        actionsHtml += `<button onclick="openDocModal()" class="px-4 py-2.5 rounded-xl bg-esdm-yellow hover:bg-esdm-gold text-navy-950 text-xs sm:text-sm font-extrabold shadow-md transition flex items-center gap-2"><i data-lucide="upload" class="w-4 h-4"></i>Unggah Dokumen</button>`;
+      }
+      if (role === 'Administrator' || role === 'Validator') {
+        actionsHtml += `<button onclick="navigate('validasi')" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs sm:text-sm font-bold transition flex items-center gap-2"><i data-lucide="shield-check" class="w-4 h-4 text-esdm-yellow"></i>Antrean Validasi (${pending})</button>`;
+      }
+      if (role === 'Pengawas') {
+        actionsHtml += `<button onclick="navigate('arsip')" class="px-4 py-2.5 rounded-xl bg-esdm-yellow hover:bg-esdm-gold text-navy-950 text-xs sm:text-sm font-extrabold shadow-md transition flex items-center gap-2"><i data-lucide="folder-open" class="w-4 h-4"></i>Lihat Arsip Dokumen</button>`;
+      }
+      document.getElementById('banner-actions').innerHTML = actionsHtml;
+
+      document.getElementById('kpi-total-docs').textContent = totalDocs;
+      document.getElementById('kpi-verified').textContent = verified;
+      document.getElementById('kpi-pending').textContent = pending;
+      document.getElementById('kpi-rejected').textContent = rejected;
+      const valEl = document.getElementById('kpi-total-value');
+      valEl.textContent = formatRupiah(totalVal);
+      valEl.title = formatRupiah(totalVal);
+      document.getElementById('chart-ta-pill').textContent = appState.selectedYear === 'ALL' ? 'Semua TA' : `TA ${appState.selectedYear}`;
+
+      renderDashboardCharts(docs, verified, pending, rejected);
+
+      const recentDocs = [...docs].sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 6);
+      const tbody = document.getElementById('dashboard-recent-tbody');
+      if (recentDocs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-10 text-center text-slate-400 text-sm">Belum ada dokumen arsip pada Tahun Anggaran ini.</td></tr>`;
+      } else {
+        tbody.innerHTML = recentDocs.map(doc => `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4">
+              <p class="font-bold text-navy-900 text-xs sm:text-sm">${escapeHtml(doc.noSpm)}</p>
+              <p class="text-[11px] text-slate-400">SP2D: ${escapeHtml(doc.noSp2d || '-')}</p>
+            </td>
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-md bg-slate-100 text-navy-900 text-xs font-bold">${escapeHtml(doc.type)}</span></td>
+            <td class="py-3 px-4 text-xs text-slate-600 whitespace-nowrap">${formatDateIndo(doc.date)}</td>
+            <td class="py-3 px-4 max-w-xs">
+              <p class="text-xs text-slate-800 truncate" title="${escapeHtml(doc.description)}">${escapeHtml(doc.description)}</p>
+              <p class="text-[10px] text-slate-400 mt-0.5">Oleh: ${escapeHtml(doc.uploadedBy)}</p>
+            </td>
+            <td class="py-3 px-4 text-right font-extrabold text-navy-900 text-xs sm:text-sm whitespace-nowrap">${formatRupiah(doc.amount)}</td>
+            <td class="py-3 px-4 text-center whitespace-nowrap">${getStatusBadgeHTML(doc.status)}</td>
+            <td class="py-3 px-4 text-right whitespace-nowrap">
+              <button onclick="openPreviewModal('${escapeHtml(doc.id)}')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-navy-900 hover:text-esdm-yellow text-navy-900 text-xs font-bold transition inline-flex items-center gap-1">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                Pratinjau
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function renderDashboardCharts(docs, verified, pending, rejected) {
+      if (typeof Chart === 'undefined') return;
+      const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const monthlyCounts = Array(12).fill(0);
+      const monthlyMillions = Array(12).fill(0);
+
+      docs.forEach(d => {
+        const parts = String(d.date || '').slice(0, 10).split('-');
+        if (parts.length === 3) {
+          const mIdx = parseInt(parts[1], 10) - 1;
+          if (mIdx >= 0 && mIdx < 12) {
+            monthlyCounts[mIdx] += 1;
+            monthlyMillions[mIdx] += Math.round((Number(d.amount) || 0) / 1000000);
+          }
+        }
+      });
+
+      const ctxAkt = document.getElementById('chart-aktivitas').getContext('2d');
+      if (aktivitasChartInstance) aktivitasChartInstance.destroy();
+      aktivitasChartInstance = new Chart(ctxAkt, {
+        data: {
+          labels: monthLabels,
+          datasets: [
+            {
+              type: 'bar',
+              label: 'Jumlah Dokumen',
+              data: monthlyCounts,
+              backgroundColor: '#132C4E',
+              hoverBackgroundColor: '#0F2440',
+              borderRadius: 6,
+              maxBarThickness: 28,
+              yAxisID: 'y'
+            },
+            {
+              type: 'line',
+              label: 'Nilai SPM (Juta Rp)',
+              data: monthlyMillions,
+              borderColor: '#F59E0B',
+              backgroundColor: 'rgba(255, 230, 0, 0.18)',
+              borderWidth: 2.5,
+              pointBackgroundColor: '#FFE600',
+              pointBorderColor: '#0F2440',
+              pointRadius: 4,
+              tension: 0.35,
+              fill: true,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top', align: 'end', labels: { boxWidth: 12, font: { family: 'Inter', size: 11, weight: '600' } } }
+          },
+          scales: {
+            y: { type: 'linear', position: 'left', beginAtZero: true, ticks: { stepSize: 1, precision: 0, font: { family: 'Inter', size: 11 } }, grid: { color: '#f1f5f9' } },
+            y1: { type: 'linear', position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, ticks: { font: { family: 'Inter', size: 10 }, callback: v => v + ' Jt' } },
+            x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11, weight: '600' } } }
+          }
+        }
+      });
+
+      const ctxStatus = document.getElementById('chart-status').getContext('2d');
+      if (statusChartInstance) statusChartInstance.destroy();
+      statusChartInstance = new Chart(ctxStatus, {
+        type: 'doughnut',
+        data: {
+          labels: ['Tervalidasi', 'Menunggu Verifikasi', 'Perlu Revisi'],
+          datasets: [{
+            data: [verified, pending, rejected],
+            backgroundColor: ['#10B981', '#FFE600', '#F43F5E'],
+            borderWidth: 2,
+            borderColor: '#FFFFFF'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '66%',
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, font: { family: 'Inter', size: 11, weight: '600' } } }
+          }
+        }
+      });
+    }
+
+    /**
+     * =========================================================================
+     * 9. VIEW 2: ARSIP DOKUMEN & FILTER REAL-TIME
+     * =========================================================================
+     */
+    function getFilteredArchiveDocs() {
+      const search = (document.getElementById('filter-search')?.value || '').trim().toLowerCase();
+      const type = document.getElementById('filter-type')?.value || 'ALL';
+      const status = document.getElementById('filter-status')?.value || 'ALL';
+      const dateStart = document.getElementById('filter-date-start')?.value || '';
+      const dateEnd = document.getElementById('filter-date-end')?.value || '';
+
+      return getDocsBySelectedYear().filter(doc => {
+        const matchSearch = !search ||
+          String(doc.noSpm || '').toLowerCase().includes(search) ||
+          String(doc.noSp2d || '').toLowerCase().includes(search) ||
+          String(doc.description || '').toLowerCase().includes(search) ||
+          String(doc.uploadedBy || '').toLowerCase().includes(search);
+        const matchType = type === 'ALL' || doc.type === type;
+        const matchStatus = status === 'ALL' || doc.status === status;
+        const docIso = String(doc.date || '').slice(0, 10);
+        const matchStart = !dateStart || docIso >= dateStart;
+        const matchEnd = !dateEnd || docIso <= dateEnd;
+        return matchSearch && matchType && matchStatus && matchStart && matchEnd;
+      }).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    }
+
+    function resetArchiveFilters() {
+      document.getElementById('filter-search').value = '';
+      document.getElementById('filter-type').value = 'ALL';
+      document.getElementById('filter-status').value = 'ALL';
+      document.getElementById('filter-date-start').value = '';
+      document.getElementById('filter-date-end').value = '';
+      renderArchiveTable();
+    }
+
+    function renderArchiveTable() {
+      const role = normalizeRole(appState.user.role);
+      const isPengawas = isPengawasRole(role);
+
+      document.getElementById('btn-add-archive').classList.toggle('hidden', !['Administrator', 'Operator'].includes(role));
+      const exportBtn = document.getElementById('btn-export-archive-csv');
+      if (exportBtn) exportBtn.classList.toggle('hidden', isPengawas);
+      document.getElementById('archive-subtitle').textContent = isPengawas
+        ? 'Mode Baca-Saja (Pengawas): cari, pratinjau PDF, dan unduh arsip dokumen keuangan yang telah diunggah.'
+        : 'Kelola, cari, pratinjau PDF Google Drive, dan unggah arsip SPM/SP2D secara terpusat.';
+
+      const docs = getFilteredArchiveDocs();
+      document.getElementById('archive-count-info').textContent = `Menampilkan ${docs.length} dokumen arsip`;
+
+      const tbody = document.getElementById('archive-tbody');
+      if (docs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-12 text-center text-slate-400 text-sm">Tidak ada dokumen yang sesuai kriteria pencarian.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = docs.map(doc => {
+        const canValidate = ['Validator', 'Administrator'].includes(role) && doc.status === 'Menunggu Verifikasi';
+        const canEdit = role === 'Administrator' || (role === 'Operator' && doc.status === 'Perlu Revisi');
+        const canDelete = role === 'Administrator';
+        const driveFileId = extractDriveFileId(doc);
+        const driveUrl = doc.driveUrl || doc.fileUrl || (driveFileId ? `https://drive.google.com/file/d/${driveFileId}/view` : '');
+        const downloadUrl = driveFileId ? `https://drive.google.com/uc?export=download&id=${driveFileId}` : driveUrl;
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3.5 px-4">
+              <p class="font-bold text-navy-900 text-xs sm:text-sm">${escapeHtml(doc.noSpm)}</p>
+              <p class="text-[11px] text-slate-500">SP2D: ${escapeHtml(doc.noSp2d || '-')}</p>
+              ${doc.fileName ? `<span class="inline-flex items-center gap-1 text-[10px] text-blue-700 font-medium mt-0.5"><i data-lucide="paperclip" class="w-3 h-3"></i>${escapeHtml(doc.fileName)}</span>` : ''}
+            </td>
+            <td class="py-3.5 px-4 whitespace-nowrap">
+              <span class="block text-[11px] font-bold text-slate-500">TA ${escapeHtml(doc.year)}</span>
+              <span class="inline-block mt-0.5 px-2 py-0.5 rounded-md bg-slate-100 text-navy-900 text-xs font-bold">${escapeHtml(doc.type)}</span>
+            </td>
+            <td class="py-3.5 px-4 text-xs text-slate-600 whitespace-nowrap">${formatDateIndo(doc.date)}</td>
+            <td class="py-3.5 px-4 max-w-md">
+              <p class="text-xs text-slate-800 leading-relaxed">${escapeHtml(doc.description)}</p>
+              <p class="text-[10px] text-slate-400 mt-0.5">Pengunggah: ${escapeHtml(doc.uploadedBy)}</p>
+              ${doc.status === 'Perlu Revisi' && doc.rejectionNote ? `<p class="mt-1 text-[11px] text-rose-700 font-medium bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Catatan Revisi: ${escapeHtml(doc.rejectionNote)}</p>` : ''}
+            </td>
+            <td class="py-3.5 px-4 text-right font-extrabold text-navy-900 text-xs sm:text-sm whitespace-nowrap">${formatRupiah(doc.amount)}</td>
+            <td class="py-3.5 px-4 text-center whitespace-nowrap">${getStatusBadgeHTML(doc.status)}</td>
+            <td class="py-3.5 px-4 text-right whitespace-nowrap">
+              <div class="inline-flex items-center gap-1.5">
+                <button onclick="openPreviewModal('${escapeHtml(doc.id)}')" title="Pratinjau Dokumen PDF" class="p-2 rounded-lg bg-slate-100 hover:bg-navy-900 hover:text-esdm-yellow text-navy-900 transition">
+                  <i data-lucide="eye" class="w-4 h-4"></i>
+                </button>
+                ${downloadUrl ? `
+                  <a href="${escapeHtml(downloadUrl)}" target="_blank" rel="noopener noreferrer" title="Unduh Berkas PDF" class="p-2 rounded-lg bg-yellow-50 hover:bg-esdm-yellow hover:text-navy-950 text-amber-700 transition">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                  </a>` : ''}
+                ${driveUrl ? `
+                  <a href="${escapeHtml(driveUrl)}" target="_blank" rel="noopener noreferrer" title="Buka File di Google Drive" class="p-2 rounded-lg bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 transition">
+                    <i data-lucide="external-link" class="w-4 h-4"></i>
+                  </a>` : ''}
+                ${canValidate ? `
+                  <button onclick="openPreviewModal('${escapeHtml(doc.id)}')" title="Validasi Dokumen" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition inline-flex items-center gap-1">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>Validasi
+                  </button>` : ''}
+                ${canEdit ? `
+                  <button onclick="openDocModal('${escapeHtml(doc.id)}')" title="${doc.status === 'Perlu Revisi' ? 'Unggah Ulang Revisi' : 'Edit Dokumen'}" class="p-2 rounded-lg bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 transition">
+                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                  </button>` : ''}
+                ${canDelete ? `
+                  <button onclick="confirmDeleteDoc('${escapeHtml(doc.id)}')" title="Hapus Permanen" class="p-2 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 transition">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                  </button>` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      safeIcons();
+    }
+
+    /**
+     * =========================================================================
+     * 10. VIEW 3: VALIDASI (ANTREAN VERIFIKASI)
+     * =========================================================================
+     */
+    function renderValidationQueue() {
+      const pendingDocs = getDocsBySelectedYear()
+        .filter(d => d.status === 'Menunggu Verifikasi')
+        .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+
+      document.getElementById('validation-queue-badge').textContent = `${pendingDocs.length} Dokumen Menunggu`;
+      const container = document.getElementById('validation-cards-container');
+
+      if (pendingDocs.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full bg-white rounded-2xl border border-slate-200 p-12 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3"><i data-lucide="check-check" class="w-7 h-7"></i></div>
+            <h3 class="text-base font-extrabold text-navy-900">Antrean Validasi Bersih!</h3>
+            <p class="text-xs text-slate-500 mt-1">Semua dokumen pada periode aktif telah selesai diverifikasi.</p>
+          </div>`;
+        safeIcons();
+        return;
+      }
+
+      container.innerHTML = pendingDocs.map(doc => `
+        <div class="bg-white rounded-2xl border border-yellow-300 shadow-xs hover:shadow-md transition p-5 flex flex-col justify-between gap-4">
+          <div class="space-y-3">
+            <div class="flex items-start justify-between gap-2">
+              <span class="px-2.5 py-1 rounded-lg bg-navy-900 text-esdm-yellow text-[11px] font-bold">${escapeHtml(doc.type)} • TA ${escapeHtml(doc.year)}</span>
+              <span class="text-[11px] font-semibold text-slate-400">${formatDateIndo(doc.date)}</span>
+            </div>
+            <div>
+              <h4 class="text-sm font-extrabold text-navy-900">${escapeHtml(doc.noSpm)}</h4>
+              <p class="text-[11px] text-slate-500">SP2D: ${escapeHtml(doc.noSp2d || '-')}</p>
+            </div>
+            <p class="text-xs text-slate-700 leading-relaxed">${escapeHtml(doc.description)}</p>
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+              <span class="text-[11px] text-slate-500">Nilai SPM</span>
+              <span class="text-sm font-extrabold text-navy-900">${formatRupiah(doc.amount)}</span>
+            </div>
+          </div>
+          <button onclick="openPreviewModal('${escapeHtml(doc.id)}')" class="w-full py-2.5 px-4 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-bold transition flex items-center justify-center gap-2">
+            <i data-lucide="file-check-2" class="w-4 h-4 text-esdm-yellow"></i>
+            Periksa PDF & Validasi
+          </button>
+        </div>
+      `).join('');
+      safeIcons();
+    }
+
+    /**
+     * =========================================================================
+     * 11. VIEW 4: RIWAYAT & AUDIT LOG (KHUSUS ADMINISTRATOR)
+     * =========================================================================
+     */
+    function parseAuditDateToIso(timeStr) {
+      const s = String(timeStr || '').trim();
+      if (!s) return '';
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+      const months = { jan:'01', feb:'02', mar:'03', apr:'04', mei:'05', may:'05', jun:'06', jul:'07', agu:'08', aug:'08', sep:'09', okt:'10', oct:'10', nov:'11', des:'12', dec:'12' };
+      const m = s.match(/(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
+      if (m) return `${m[3]}-${months[m[2].toLowerCase()] || '01'}-${m[1].padStart(2, '0')}`;
+      return '';
+    }
+
+    function classifyAuditAction(actionText) {
+      const t = String(actionText || '').toLowerCase();
+      if (t.includes('login') || t.includes('masuk')) return 'LOGIN';
+      if (t.includes('unggah') || t.includes('upload') || t.includes('revisi dokumen') || t.includes('memperbarui dokumen')) return 'UPLOAD';
+      if (t.includes('menyetujui') || t.includes('tervalidasi') || t.includes('mengembalikan') || t.includes('perlu revisi') || t.includes('validasi')) return 'VALIDATE';
+      if (t.includes('hapus')) return 'DELETE';
+      if (t.includes('pengguna') || t.includes('akun') || t.includes('sandi')) return 'USER';
+      return 'OTHER';
+    }
+
+    function getFilteredAuditLogs() {
+      if (!appState.user || !isAdminRole(appState.user.role)) return [];
+
+      const q = (document.getElementById('audit-search-input')?.value || '').trim().toLowerCase();
+      const roleFilter = document.getElementById('audit-role-filter')?.value || 'ALL';
+      const actionFilter = document.getElementById('audit-action-filter')?.value || 'ALL';
+      const dateStart = document.getElementById('audit-date-start')?.value || '';
+      const dateEnd = document.getElementById('audit-date-end')?.value || '';
+
+      return (appState.auditLogs || []).filter(l => {
+        const matchRole = roleFilter === 'ALL' || normalizeRole(l.role) === roleFilter;
+        const matchAction = actionFilter === 'ALL' || classifyAuditAction(l.action) === actionFilter;
+        const isoDate = parseAuditDateToIso(l.time);
+        const matchStart = !dateStart || (isoDate && isoDate >= dateStart);
+        const matchEnd = !dateEnd || (isoDate && isoDate <= dateEnd);
+        const matchQuery = !q ||
+          String(l.actor || '').toLowerCase().includes(q) ||
+          String(l.role || '').toLowerCase().includes(q) ||
+          String(l.noSpm || '').toLowerCase().includes(q) ||
+          String(l.action || '').toLowerCase().includes(q);
+        return matchRole && matchAction && matchStart && matchEnd && matchQuery;
+      });
+    }
+
+    function resetAuditFilters() {
+      document.getElementById('audit-search-input').value = '';
+      document.getElementById('audit-action-filter').value = 'ALL';
+      document.getElementById('audit-role-filter').value = 'ALL';
+      document.getElementById('audit-date-start').value = '';
+      document.getElementById('audit-date-end').value = '';
+      renderAuditLogs();
+    }
+
+    async function refreshAuditLogs() {
+      if (!appState.user || !isAdminRole(appState.user.role)) {
+        showToast('Akses ditolak: Riwayat & Audit hanya dapat diakses oleh Administrator.', 'error');
+        navigate(isPengawasRole(appState.user?.role) ? 'arsip' : 'dashboard');
+        return;
+      }
+      const role = normalizeRole(appState.user.role);
+      try {
+        setGlobalLoader(true, 'Memuat Ulang Log Audit...', 'Mengambil data terbaru dari Google Sheets');
+        const res = await GasApi.post('getAuditLogs', {
+          role,
+          actor: { name: appState.user.name, role }
+        });
+        const rawLogs = res.auditLogs || res.audit_logs || res.logs || res.riwayat || [];
+        appState.auditLogs = Array.isArray(rawLogs) ? rawLogs.map(normalizeAuditEntry) : [];
+        renderAuditLogs();
+        showToast('Data Riwayat & Audit berhasil diperbarui.', 'success');
+      } catch (err) {
+        showToast('Gagal memuat ulang audit: ' + err.message, 'error');
+      } finally {
+        setGlobalLoader(false);
+      }
+    }
+
+    function exportAuditCSV() {
+      if (!appState.user || !isAdminRole(appState.user.role)) {
+        showToast('Akses ditolak: Ekspor Riwayat & Audit hanya dapat dilakukan oleh Administrator.', 'error');
+        navigate(isPengawasRole(appState.user?.role) ? 'arsip' : 'dashboard');
+        return;
+      }
+      const logs = getFilteredAuditLogs();
+      if (logs.length === 0) {
+        showToast('Tidak ada catatan audit untuk diekspor.', 'error');
+        return;
+      }
+      const headers = ['Waktu', 'Pengguna', 'Peran', 'No SPM / Referensi', 'Aktivitas & Catatan Audit'];
+      const rows = logs.map(l => [
+        `"${String(l.time || '').replace(/"/g, '""')}"`,
+        `"${String(l.actor || '').replace(/"/g, '""')}"`,
+        `"${String(l.role || '').replace(/"/g, '""')}"`,
+        `"${String(l.noSpm || '-').replace(/"/g, '""')}"`,
+        `"${String(l.action || '').replace(/"/g, '""')}"`
+      ]);
+      const csv = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SIADIK_PSDMBP_AUDIT_LOG_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Berhasil mengekspor ${logs.length} catatan audit ke CSV.`, 'success');
+    }
+
+    function renderAuditLogs() {
+      if (!appState.user || !isAdminRole(appState.user.role)) {
+        appState.auditLogs = [];
+        navigate(isPengawasRole(appState.user?.role) ? 'arsip' : 'dashboard');
+        return;
+      }
+
+      document.getElementById('audit-subtitle').textContent =
+        'Jejak kronologis seluruh aktivitas login, unggah, validasi, revisi, hapus, dan pengelolaan akun (Khusus Administrator).';
+
+      const logs = getFilteredAuditLogs();
+      const todayIso = new Date().toISOString().slice(0, 10);
+
+      document.getElementById('audit-stat-total').textContent = logs.length;
+      document.getElementById('audit-stat-upload').textContent = logs.filter(l => classifyAuditAction(l.action) === 'UPLOAD').length;
+      document.getElementById('audit-stat-validate').textContent = logs.filter(l => classifyAuditAction(l.action) === 'VALIDATE').length;
+      document.getElementById('audit-stat-today').textContent = logs.filter(l => parseAuditDateToIso(l.time) === todayIso).length;
+      document.getElementById('audit-count-info').textContent = `Menampilkan ${logs.length} catatan audit`;
+
+      const tbody = document.getElementById('audit-logs-tbody');
+      if (logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="py-10 text-center text-slate-400">Belum ada catatan audit yang sesuai filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = logs.map(l => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-3 px-4 text-slate-500 font-mono text-xs whitespace-nowrap">${escapeHtml(l.time)}</td>
+          <td class="py-3 px-4 whitespace-nowrap">
+            <p class="font-bold text-navy-900 text-xs">${escapeHtml(l.actor)}</p>
+            <div class="mt-0.5">${getRoleBadgeHTML(l.role)}</div>
+          </td>
+          <td class="py-3 px-4 font-mono text-xs font-semibold text-slate-700 whitespace-nowrap">${escapeHtml(l.noSpm || '-')}</td>
+          <td class="py-3 px-4 text-xs text-slate-700 leading-relaxed">${escapeHtml(l.action)}</td>
+        </tr>
+      `).join('');
+    }
+
+    /**
+     * =========================================================================
+     * 12. UNGGAH PDF DRAG-AND-DROP (BASE64 -> GOOGLE DRIVE) & PRATINJAU PDF
+     * =========================================================================
+     */
+    function initPdfDropzone() {
+      const dz = document.getElementById('pdf-dropzone');
+      const fileInput = document.getElementById('doc-file');
+      if (!dz || !fileInput) return;
+
+      dz.addEventListener('click', () => fileInput.click());
+      ['dragenter', 'dragover'].forEach(ev => {
+        dz.addEventListener(ev, e => {
+          e.preventDefault();
+          dz.classList.add('border-esdm-amber', 'bg-yellow-50/70');
+        });
+      });
+      ['dragleave', 'drop'].forEach(ev => {
+        dz.addEventListener(ev, e => {
+          e.preventDefault();
+          dz.classList.remove('border-esdm-amber', 'bg-yellow-50/70');
+        });
+      });
+      dz.addEventListener('drop', e => {
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) processSelectedPdfFile(files[0]);
+      });
+    }
+
+    function handlePdfInputChange(event) {
+      if (event.target.files && event.target.files[0]) {
+        processSelectedPdfFile(event.target.files[0]);
+      }
+    }
+
+    function processSelectedPdfFile(file) {
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      if (!isPdf) {
+        showToast('Format ditolak. Hanya file berekstensi .pdf yang diperbolehkan.', 'error');
+        return;
+      }
+      const maxSize = 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        showToast('Ukuran file melebihi batas maksimal 10 MB.', 'error');
+        return;
+      }
+
+      const blobUrl = URL.createObjectURL(file);
+      const sizeKb = (file.size / 1024).toFixed(1);
+      document.getElementById('doc-file-label').textContent = `Terpilih: ${file.name} (${sizeKb} KB)`;
+      document.getElementById('doc-file-sub').textContent = 'Siap diunggah ke Google Drive & Google Sheets';
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64Str = String(reader.result || '').split(',')[1] || '';
+        pendingSelectedPdf = { name: file.name, url: blobUrl, base64: base64Str, size: file.size };
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function openDocModal(docId = null) {
+      const role = normalizeRole(appState.user.role);
+      if (!['Administrator', 'Operator'].includes(role)) {
+        showToast('Anda tidak memiliki izin mengunggah atau mengubah dokumen.', 'error');
+        return;
+      }
+
+      pendingSelectedPdf = null;
+      document.getElementById('doc-form').reset();
+      document.getElementById('doc-id').value = '';
+      document.getElementById('doc-revision-alert').classList.add('hidden');
+      document.getElementById('upload-progress-wrap').classList.add('hidden');
+      document.getElementById('doc-file-label').textContent = 'Seret & lepas file PDF ke sini, atau klik untuk memilih';
+      document.getElementById('doc-file-sub').textContent = 'Hanya format .pdf • Ukuran maksimal 10 MB • Otomatis disimpan ke Google Drive';
+
+      if (docId) {
+        const doc = appState.documents.find(d => d.id === docId);
+        if (!doc) return;
+        const isRev = doc.status === 'Perlu Revisi';
+        document.getElementById('modal-doc-title').textContent = isRev ? 'Revisi Dokumen Arsip Keuangan' : 'Edit Arsip Dokumen Keuangan';
+        document.getElementById('doc-submit-label').textContent = isRev ? 'Simpan Revisi & Ajukan Ulang' : 'Simpan Perubahan';
+        document.getElementById('doc-id').value = doc.id;
+        document.getElementById('doc-no-spm').value = doc.noSpm || '';
+        document.getElementById('doc-no-sp2d').value = doc.noSp2d || '';
+        document.getElementById('doc-type').value = doc.type || 'SPM-LS';
+        document.getElementById('doc-year').value = String(doc.year || '2026');
+        document.getElementById('doc-date').value = String(doc.date || '').slice(0, 10);
+        document.getElementById('doc-amount').value = doc.amount || '';
+        document.getElementById('doc-desc').value = doc.description || '';
+        if (doc.fileName) document.getElementById('doc-file-label').textContent = `Berkas saat ini: ${doc.fileName} (Seret PDF baru untuk mengganti)`;
+        if (isRev && doc.rejectionNote) {
+          document.getElementById('doc-revision-alert').classList.remove('hidden');
+          document.getElementById('doc-revision-note').textContent = doc.rejectionNote;
+        }
+      } else {
+        document.getElementById('modal-doc-title').textContent = 'Unggah Arsip Dokumen Keuangan Baru';
+        document.getElementById('doc-submit-label').textContent = 'Simpan & Kirim Validasi';
+        document.getElementById('doc-year').value = appState.selectedYear === 'ALL' ? '2026' : appState.selectedYear;
+        document.getElementById('doc-date').value = new Date().toISOString().split('T')[0];
+      }
+
+      document.getElementById('modal-doc-form').classList.remove('hidden');
+      safeIcons();
+    }
+
+    document.getElementById('doc-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const id = document.getElementById('doc-id').value;
+      const noSpm = document.getElementById('doc-no-spm').value.trim();
+      const noSp2d = document.getElementById('doc-no-sp2d').value.trim();
+      const type = document.getElementById('doc-type').value;
+      const year = document.getElementById('doc-year').value;
+      const date = document.getElementById('doc-date').value;
+      const amount = Number(document.getElementById('doc-amount').value);
+      const description = document.getElementById('doc-desc').value.trim();
+      const oldDoc = id ? appState.documents.find(d => d.id === id) : null;
+      const role = normalizeRole(appState.user.role);
+
+      const progWrap = document.getElementById('upload-progress-wrap');
+      const progBar = document.getElementById('upload-progress-bar');
+      const progPct = document.getElementById('upload-progress-pct');
+      const submitBtn = document.getElementById('doc-submit-btn');
+
+      progWrap.classList.remove('hidden');
+      progBar.style.width = '30%';
+      progPct.textContent = '30%';
+      submitBtn.disabled = true;
+
+      try {
+        setGlobalLoader(true, 'Mengunggah ke Google Drive...', 'Menyimpan berkas PDF & metadata ke Google Sheets');
+        progBar.style.width = '65%';
+        progPct.textContent = '65%';
+
+        const res = await GasApi.post('uploadDocument', {
+          document: {
+            id: id || '',
+            noSpm, noSp2d, type, year, date, amount, description,
+            uploadedBy: appState.user.name,
+            fileName: pendingSelectedPdf ? pendingSelectedPdf.name : (oldDoc ? oldDoc.fileName : ''),
+            driveFileId: oldDoc ? extractDriveFileId(oldDoc) : '',
+            driveUrl: oldDoc ? (oldDoc.driveUrl || '') : ''
+          },
+          fileName: pendingSelectedPdf ? pendingSelectedPdf.name : (oldDoc ? oldDoc.fileName : ''),
+          fileBase64: pendingSelectedPdf ? pendingSelectedPdf.base64 : '',
+          actor: { name: appState.user.name, role }
+        }, null, 90000);
+
+        if (pendingSelectedPdf && res.id) {
+          sessionPdfBlobs[res.id] = pendingSelectedPdf.url;
+        }
+
+        progBar.style.width = '100%';
+        progPct.textContent = '100%';
+        closeModal('modal-doc-form');
+        await syncDataFromServer(false);
+        showToast('Dokumen berhasil disimpan ke Google Drive & Google Sheets!', 'success');
+      } catch (err) {
+        showToast('Gagal mengunggah dokumen: ' + err.message, 'error');
+      } finally {
+        submitBtn.disabled = false;
+        setGlobalLoader(false);
+      }
+    });
+
+    function openPreviewModal(docId) {
+      const doc = appState.documents.find(d => d.id === docId);
+      if (!doc) return;
+      currentPreviewDocId = docId;
+
+      const driveFileId = extractDriveFileId(doc);
+      const driveUrl = doc.driveUrl || doc.fileUrl || (driveFileId ? `https://drive.google.com/file/d/${driveFileId}/view` : '');
+      const downloadUrl = driveFileId ? `https://drive.google.com/uc?export=download&id=${driveFileId}` : driveUrl;
+
+      document.getElementById('preview-title').textContent = `${doc.type} — ${doc.noSpm}`;
+      document.getElementById('preview-subtitle').textContent = `SP2D: ${doc.noSp2d || '-'} • TA ${doc.year}`;
+      document.getElementById('preview-status-badge').innerHTML = getStatusBadgeHTML(doc.status);
+      document.getElementById('preview-meta-year').textContent = `TA ${doc.year}`;
+      document.getElementById('preview-meta-type').textContent = doc.type;
+      document.getElementById('preview-meta-date').textContent = formatDateIndo(doc.date);
+      document.getElementById('preview-meta-amount').textContent = formatRupiah(doc.amount);
+      document.getElementById('preview-meta-uploader').textContent = doc.uploadedBy || '-';
+      document.getElementById('preview-meta-file').textContent = doc.fileName || '-';
+
+      const driveBtn = document.getElementById('preview-drive-btn');
+      const downloadBtn = document.getElementById('preview-download-btn');
+      if (driveUrl) {
+        driveBtn.href = driveUrl;
+        driveBtn.classList.remove('hidden');
+        driveBtn.classList.add('inline-flex');
+      } else {
+        driveBtn.classList.add('hidden');
+        driveBtn.classList.remove('inline-flex');
+      }
+      if (downloadUrl) {
+        downloadBtn.href = downloadUrl;
+        downloadBtn.classList.remove('hidden');
+        downloadBtn.classList.add('inline-flex');
+      } else {
+        downloadBtn.classList.add('hidden');
+        downloadBtn.classList.remove('inline-flex');
+      }
+
+      const pdfPane = document.getElementById('preview-pdf-pane');
+      if (sessionPdfBlobs[doc.id]) {
+        pdfPane.innerHTML = `
+          <div class="w-full h-full min-h-[480px] bg-white rounded-xl shadow-md overflow-hidden border border-slate-300 flex flex-col">
+            <div class="px-4 py-2 bg-navy-900 text-white text-xs flex items-center justify-between">
+              <span class="font-medium truncate">Berkas PDF Lokal: ${escapeHtml(doc.fileName || 'Dokumen.pdf')}</span>
+              <a href="${sessionPdfBlobs[doc.id]}" target="_blank" class="text-esdm-yellow hover:underline font-bold">Buka Tab Baru</a>
+            </div>
+            <iframe src="${sessionPdfBlobs[doc.id]}" class="w-full flex-1 border-0" title="Pratinjau PDF"></iframe>
+          </div>`;
+      } else if (driveFileId) {
+        const embedUrl = `https://drive.google.com/file/d/${driveFileId}/preview`;
+        pdfPane.innerHTML = `
+          <div class="w-full h-full min-h-[480px] bg-white rounded-xl shadow-md overflow-hidden border border-slate-300 flex flex-col">
+            <div class="px-4 py-2 bg-navy-900 text-white text-xs flex items-center justify-between gap-2">
+              <span class="font-medium truncate">Pratinjau Google Drive: ${escapeHtml(doc.fileName || doc.noSpm)}</span>
+              <a href="${escapeHtml(driveUrl)}" target="_blank" rel="noopener noreferrer" class="text-esdm-yellow hover:underline font-bold whitespace-nowrap">Buka Penuh di Drive</a>
+            </div>
+            <iframe src="${embedUrl}" class="w-full flex-1 border-0 bg-slate-100" allow="autoplay" title="Google Drive PDF Preview"></iframe>
+          </div>`;
+      } else {
+        const stampHtml = doc.status === 'Tervalidasi'
+          ? `<div class="inline-block border-2 border-emerald-600 text-emerald-700 px-3 py-1 rounded-lg font-extrabold text-xs uppercase tracking-widest -rotate-6">TERVALIDASI DIGITAL</div>`
+          : doc.status === 'Perlu Revisi'
+            ? `<div class="inline-block border-2 border-rose-600 text-rose-700 px-3 py-1 rounded-lg font-extrabold text-xs uppercase tracking-widest -rotate-6">PERLU REVISI</div>`
+            : `<div class="inline-block border-2 border-amber-500 text-amber-700 px-3 py-1 rounded-lg font-extrabold text-xs uppercase tracking-widest">MENUNGGU VERIFIKASI</div>`;
+
+        pdfPane.innerHTML = `
+          <div class="w-full max-w-2xl bg-white rounded-xl shadow-lg border border-slate-300 p-6 sm:p-8 text-slate-800 space-y-6">
+            <div class="flex items-center gap-4 border-b-2 border-navy-900 pb-4">
+              <div class="w-16 h-16 shrink-0">${ESDM_NEW_LOGO_SVG}</div>
+              <div class="flex-1">
+                <p class="text-[11px] font-bold uppercase tracking-widest text-slate-600">Kementerian Energi dan Sumber Daya Mineral</p>
+                <p class="text-xs font-extrabold uppercase tracking-wider text-navy-900">Badan Geologi • Pusat Sumber Daya Mineral, Batubara, dan Panas Bumi</p>
+                <p class="text-[10px] text-slate-500 mt-0.5">Jl. Soekarno-Hatta No. 444, Bandung 40254 • Telp. (022) 5202698</p>
+              </div>
+            </div>
+            <div class="text-center space-y-1">
+              <h4 class="text-base font-extrabold uppercase tracking-wide text-navy-900 underline underline-offset-4">LEMBAR RINGKASAN ARSIP ${escapeHtml(doc.type)}</h4>
+              <p class="text-xs font-semibold text-slate-600">Nomor SPM: ${escapeHtml(doc.noSpm)}</p>
+            </div>
+            <div class="border border-slate-300 rounded-lg overflow-hidden text-xs">
+              <div class="grid grid-cols-3 border-b border-slate-200"><div class="p-2.5 bg-slate-50 font-bold text-slate-600">Nomor SP2D</div><div class="col-span-2 p-2.5 font-mono font-bold text-navy-900">${escapeHtml(doc.noSp2d || '-')}</div></div>
+              <div class="grid grid-cols-3 border-b border-slate-200"><div class="p-2.5 bg-slate-50 font-bold text-slate-600">Tahun Anggaran</div><div class="col-span-2 p-2.5 font-semibold">${escapeHtml(doc.year)}</div></div>
+              <div class="grid grid-cols-3 border-b border-slate-200"><div class="p-2.5 bg-slate-50 font-bold text-slate-600">Tanggal SPM</div><div class="col-span-2 p-2.5">${formatDateIndo(doc.date)}</div></div>
+              <div class="grid grid-cols-3 border-b border-slate-200"><div class="p-2.5 bg-slate-50 font-bold text-slate-600">Nominal</div><div class="col-span-2 p-2.5 font-extrabold text-sm text-navy-900">${formatRupiah(doc.amount)}</div></div>
+              <div class="grid grid-cols-3"><div class="p-2.5 bg-slate-50 font-bold text-slate-600">Uraian</div><div class="col-span-2 p-2.5 leading-relaxed">${escapeHtml(doc.description)}</div></div>
+            </div>
+            <div class="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-dashed border-slate-300">
+              <div>
+                ${stampHtml}
+                <p class="text-[10px] text-slate-400 mt-2">Lampiran PDF belum tersedia di Google Drive.</p>
+              </div>
+              <div class="text-center text-xs">
+                <p class="text-slate-500">Bandung, ${formatDateIndo(doc.date)}</p>
+                <p class="font-bold text-slate-800 mt-0.5">Pejabat Penandatangan SPM</p>
+                <div class="h-10 flex items-center justify-center text-[10px] text-slate-400 italic">[Arsip Digital SIADIK]</div>
+                <p class="font-bold underline text-navy-900">PPSPM Satker PSDMBP</p>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      const activeRole = normalizeRole(appState.user.role);
+      const valPanel = document.getElementById('preview-validation-panel');
+      document.getElementById('validation-note-input').value = '';
+      const canVal = ['Validator', 'Administrator'].includes(activeRole) && doc.status === 'Menunggu Verifikasi';
+      valPanel.classList.toggle('hidden', !canVal);
+
+      // Sembunyikan bagian Riwayat Dokumen sepenuhnya untuk selain Administrator
+      const logsSection = document.getElementById('preview-logs-section');
+      if (!isAdminRole(activeRole)) {
+        if (logsSection) logsSection.classList.add('hidden');
+        document.getElementById('preview-logs-list').innerHTML = '';
+      } else {
+        if (logsSection) logsSection.classList.remove('hidden');
+        const logs = Array.isArray(doc.logs) ? [...doc.logs].reverse() : [];
+        document.getElementById('preview-logs-list').innerHTML = logs.length === 0
+          ? `<li class="ml-4 text-xs text-slate-400">Belum ada riwayat pada dokumen ini.</li>`
+          : logs.map(log => `
+              <li class="ml-4">
+                <div class="absolute w-2.5 h-2.5 bg-esdm-yellow rounded-full -left-[5.5px] border-2 border-white ring-1 ring-slate-300"></div>
+                <time class="text-[10px] font-semibold text-slate-400">${escapeHtml(log.time)}</time>
+                <p class="text-xs font-bold text-navy-900 mt-0.5">${escapeHtml(log.actor)}</p>
+                <p class="text-xs text-slate-600 mt-0.5 leading-snug">${escapeHtml(log.action)}</p>
+              </li>
+            `).join('');
+      }
+
+      document.getElementById('modal-doc-preview').classList.remove('hidden');
+      safeIcons();
+    }
+
+    async function processValidation(decision) {
+      if (!currentPreviewDocId) return;
+      const role = normalizeRole(appState.user.role);
+      if (!['Validator', 'Administrator'].includes(role)) {
+        showToast('Anda tidak memiliki izin melakukan validasi dokumen.', 'error');
+        return;
+      }
+
+      const note = document.getElementById('validation-note-input').value.trim();
+      if (decision === 'Perlu Revisi' && !note) {
+        showToast('Catatan revisi wajib diisi saat mengembalikan dokumen.', 'error');
+        document.getElementById('validation-note-input').focus();
+        return;
+      }
+
+      try {
+        setGlobalLoader(true, 'Menyimpan Keputusan Validasi...', 'Memperbarui status dokumen di Google Sheets');
+        await GasApi.post('validateDocument', {
+          docId: currentPreviewDocId,
+          decision,
+          note,
+          actor: { name: appState.user.name, role }
+        });
+        closeModal('modal-doc-preview');
+        await syncDataFromServer(false);
+        showToast(`Status dokumen berhasil diperbarui menjadi ${decision}.`, 'success');
+      } catch (err) {
+        showToast('Gagal menyimpan validasi: ' + err.message, 'error');
+      } finally {
+        setGlobalLoader(false);
+      }
+    }
+
+    function confirmDeleteDoc(docId) {
+      const doc = appState.documents.find(d => d.id === docId);
+      if (!doc) return;
+      openConfirmModal(
+        'Hapus Arsip Permanen?',
+        `Dokumen ${doc.noSpm} akan dihapus dari Google Sheets dan file PDF-nya dipindahkan ke Sampah Google Drive.`,
+        async () => {
+          try {
+            setGlobalLoader(true, 'Menghapus Dokumen...', 'Menghapus baris Sheets & file Drive');
+            await GasApi.post('deleteDocument', {
+              docId,
+              actor: { name: appState.user.name, role: normalizeRole(appState.user.role) }
+            });
+            await syncDataFromServer(false);
+            showToast(`Dokumen ${doc.noSpm} berhasil dihapus.`, 'info');
+          } catch (err) {
+            showToast('Gagal menghapus dokumen: ' + err.message, 'error');
+          } finally {
+            setGlobalLoader(false);
+          }
+        }
+      );
+    }
+
+    /**
+     * =========================================================================
+     * 13. VIEW 5: LAPORAN & EKSPOR CSV
+     * =========================================================================
+     */
+    function renderReport() {
+      const docs = getDocsBySelectedYear();
+      const types = ['SPM-LS', 'SPM-GU', 'SPM-UP', 'SPM-TUP', 'SP2D', 'Gaji & Tukin'];
+      document.getElementById('report-ta-subtitle').textContent = appState.selectedYear === 'ALL'
+        ? 'Semua Tahun Anggaran'
+        : `Tahun Anggaran ${appState.selectedYear}`;
+      document.getElementById('report-printed-at').textContent = `Dicetak pada: ${getCurrentTimestampIndo()} WIB`;
+
+      let gTotal = 0, gVer = 0, gPend = 0, gRej = 0, gVal = 0;
+      document.getElementById('report-summary-tbody').innerHTML = types.map(type => {
+        const sub = docs.filter(d => d.type === type);
+        const ver = sub.filter(d => d.status === 'Tervalidasi').length;
+        const pend = sub.filter(d => d.status === 'Menunggu Verifikasi').length;
+        const rej = sub.filter(d => d.status === 'Perlu Revisi').length;
+        const val = sub.reduce((s, d) => s + (Number(d.amount) || 0), 0);
+        gTotal += sub.length; gVer += ver; gPend += pend; gRej += rej; gVal += val;
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="py-3 px-4 font-bold text-navy-900">${type}</td>
+            <td class="py-3 px-4 text-center font-semibold">${sub.length}</td>
+            <td class="py-3 px-4 text-center text-emerald-700 font-bold">${ver}</td>
+            <td class="py-3 px-4 text-center text-amber-700 font-bold">${pend}</td>
+            <td class="py-3 px-4 text-center text-rose-700 font-bold">${rej}</td>
+            <td class="py-3 px-4 text-right font-bold text-navy-900">${formatRupiah(val)}</td>
+          </tr>`;
+      }).join('');
+
+      document.getElementById('report-summary-tfoot').innerHTML = `
+        <tr>
+          <td class="py-3.5 px-4">TOTAL KESELURUHAN</td>
+          <td class="py-3.5 px-4 text-center">${gTotal}</td>
+          <td class="py-3.5 px-4 text-center text-emerald-400">${gVer}</td>
+          <td class="py-3.5 px-4 text-center text-esdm-yellow">${gPend}</td>
+          <td class="py-3.5 px-4 text-center text-rose-400">${gRej}</td>
+          <td class="py-3.5 px-4 text-right text-esdm-yellow">${formatRupiah(gVal)}</td>
+        </tr>`;
+    }
+
+    function exportCSV() {
+      if (!appState.user || isPengawasRole(appState.user.role)) {
+        showToast('Akses ditolak: Peran Pengawas tidak diizinkan mengekspor CSV.', 'error');
+        return;
+      }
+      const docs = appState.currentView === 'arsip' ? getFilteredArchiveDocs() : getDocsBySelectedYear();
+      if (docs.length === 0) {
+        showToast('Tidak ada data untuk diekspor.', 'error');
+        return;
+      }
+      const headers = ['No SPM', 'No SP2D', 'Tahun Anggaran', 'Jenis Dokumen', 'Tanggal SPM', 'Nilai Rupiah', 'Status', 'Uraian Pembayaran', 'Pengunggah', 'Tautan Google Drive'];
+      const rows = docs.map(d => [
+        `"${String(d.noSpm || '').replace(/"/g, '""')}"`,
+        `"${String(d.noSp2d || '').replace(/"/g, '""')}"`,
+        d.year,
+        `"${String(d.type || '').replace(/"/g, '""')}"`,
+        String(d.date || '').slice(0, 10),
+        Number(d.amount) || 0,
+        `"${String(d.status || '').replace(/"/g, '""')}"`,
+        `"${String(d.description || '').replace(/"/g, '""')}"`,
+        `"${String(d.uploadedBy || '').replace(/"/g, '""')}"`,
+        `"${String(d.driveUrl || '').replace(/"/g, '""')}"`
+      ]);
+      const csv = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SIADIK_PSDMBP_TA_${appState.selectedYear}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Berhasil mengunduh CSV (${docs.length} dokumen).`, 'success');
+    }
+
+    /**
+     * =========================================================================
+     * 14. VIEW 6: PENGATURAN (MANAJEMEN PENGGUNA CRUD + INTEGRASI GAS)
+     * =========================================================================
+     */
+    function switchSettingsTab(tab) {
+      appState.settingsTab = tab;
+      document.getElementById('settings-tab-users').classList.toggle('hidden', tab !== 'users');
+      document.getElementById('settings-tab-backend').classList.toggle('hidden', tab !== 'backend');
+
+      const btnU = document.getElementById('tab-btn-users');
+      const btnB = document.getElementById('tab-btn-backend');
+      btnU.className = tab === 'users'
+        ? 'px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-navy-900 text-esdm-yellow'
+        : 'px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-slate-600 border border-slate-200 hover:bg-slate-50';
+      btnB.className = tab === 'backend'
+        ? 'px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-navy-900 text-esdm-yellow'
+        : 'px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-slate-600 border border-slate-200 hover:bg-slate-50';
+
+      if (tab === 'users') renderUsers();
+      if (tab === 'backend') {
+        const cfg = GasApi.getConfig();
+        document.getElementById('gas-url-input').value = cfg.gasUrl;
+        document.getElementById('gas-token-input').value = cfg.token;
+      }
+      safeIcons();
+    }
+
+    function renderUsers() {
+      const tbody = document.getElementById('users-tbody');
+      if (!appState.users || appState.users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-10 text-center text-slate-400 text-sm">Belum ada data pengguna dari server.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = appState.users.map(u => {
+        const isMainAdmin = String(u.username || '').toLowerCase() === 'admin';
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3.5 px-4">
+              <p class="font-bold text-navy-900">${escapeHtml(u.name)}</p>
+              <p class="text-[11px] text-slate-500 font-mono">NIP. ${escapeHtml(u.nip || '-')}</p>
+            </td>
+            <td class="py-3.5 px-4 font-mono text-xs text-slate-700">${escapeHtml(u.username)}</td>
+            <td class="py-3.5 px-4">${getRoleBadgeHTML(u.role)}</td>
+            <td class="py-3.5 px-4 text-xs text-slate-600">${escapeHtml(u.unit || '-')}</td>
+            <td class="py-3.5 px-4 text-center">
+              ${u.active
+                ? `<span class="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700">Aktif</span>`
+                : `<span class="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 text-slate-600">Nonaktif</span>`}
+            </td>
+            <td class="py-3.5 px-4 text-right whitespace-nowrap">
+              <div class="inline-flex items-center gap-1.5">
+                <button onclick="openUserModal('${escapeHtml(u.id)}')" title="Edit Profil & Peran" class="p-2 rounded-lg bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 transition">
+                  <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="openResetPassModal('${escapeHtml(u.id)}')" title="Reset Kata Sandi" class="p-2 rounded-lg bg-yellow-50 hover:bg-esdm-yellow hover:text-navy-950 text-amber-700 transition">
+                  <i data-lucide="key-round" class="w-3.5 h-3.5"></i>
+                </button>
+                ${!isMainAdmin ? `
+                  <button onclick="toggleUserActive('${escapeHtml(u.id)}')" title="${u.active ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}" class="px-2.5 py-1.5 rounded-lg border text-xs font-bold transition ${u.active ? 'border-amber-200 text-amber-800 hover:bg-amber-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}">
+                    ${u.active ? 'Nonaktifkan' : 'Aktifkan'}
+                  </button>
+                  <button onclick="confirmDeleteUser('${escapeHtml(u.id)}')" title="Hapus Pengguna Permanen" class="p-2 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 transition">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  </button>` : `<span class="text-[11px] text-slate-400 italic px-2">Utama</span>`}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      safeIcons();
+    }
+
+    function openUserModal(userId = null) {
+      document.getElementById('user-form').reset();
+      document.getElementById('edit-user-id').value = '';
+      const passInput = document.getElementById('new-user-password');
+      const passLabel = document.getElementById('new-user-password-label');
+      const passHint = document.getElementById('new-user-password-hint');
+
+      if (userId) {
+        const u = appState.users.find(item => item.id === userId);
+        if (!u) return;
+        document.getElementById('modal-user-title').innerHTML = `<i data-lucide="user-cog" class="w-4 h-4 text-esdm-yellow"></i> Edit Akun Pegawai`;
+        document.getElementById('edit-user-id').value = u.id;
+        document.getElementById('new-user-name').value = u.name || '';
+        document.getElementById('new-user-nip').value = u.nip || '';
+        document.getElementById('new-user-username').value = u.username || '';
+        document.getElementById('new-user-role').value = normalizeRole(u.role) || 'Operator';
+        document.getElementById('new-user-unit').value = u.unit || '';
+        passInput.value = '';
+        passInput.required = false;
+        passLabel.textContent = 'Kata Sandi Baru (Opsional)';
+        passHint.classList.remove('hidden');
+      } else {
+        document.getElementById('modal-user-title').innerHTML = `<i data-lucide="user-plus" class="w-4 h-4 text-esdm-yellow"></i> Tambah Akun Pegawai`;
+        passInput.value = 'psdmbp2026';
+        passInput.required = true;
+        passLabel.textContent = 'Kata Sandi Awal';
+        passHint.classList.add('hidden');
+      }
+
+      document.getElementById('modal-user-form').classList.remove('hidden');
+      safeIcons();
+    }
+
+    document.getElementById('user-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const editId = document.getElementById('edit-user-id').value;
+      const userObj = {
+        id: editId || '',
+        name: document.getElementById('new-user-name').value.trim(),
+        nip: document.getElementById('new-user-nip').value.trim(),
+        username: document.getElementById('new-user-username').value.trim().toLowerCase(),
+        role: document.getElementById('new-user-role').value,
+        unit: document.getElementById('new-user-unit').value.trim(),
+        password: document.getElementById('new-user-password').value
+      };
+
+      if (!editId && appState.users.some(u => String(u.username || '').toLowerCase() === userObj.username)) {
+        showToast('Username tersebut sudah terdaftar.', 'error');
+        return;
+      }
+
+      try {
+        setGlobalLoader(true, editId ? 'Memperbarui Pengguna...' : 'Menambahkan Pengguna...', 'Menyimpan ke Google Sheets');
+        await GasApi.post(editId ? 'updateUser' : 'createUser', {
+          mode: editId ? 'edit' : 'create',
+          user: userObj,
+          actor: { name: appState.user.name, role: normalizeRole(appState.user.role) }
+        });
+        closeModal('modal-user-form');
+        await syncDataFromServer(false);
+        showToast(editId ? `Profil ${userObj.name} berhasil diperbarui.` : `Akun ${userObj.name} berhasil ditambahkan.`, 'success');
+      } catch (err) {
+        showToast('Gagal menyimpan pengguna: ' + err.message, 'error');
+      } finally {
+        setGlobalLoader(false);
+      }
+    });
+
+    function openResetPassModal(userId) {
+      const u = appState.users.find(item => item.id === userId);
+      if (!u) return;
+      document.getElementById('reset-pass-user-id').value = u.id;
+      document.getElementById('reset-pass-user-name').textContent = `${u.name} (${u.username})`;
+      document.getElementById('reset-pass-input').value = '';
+      document.getElementById('modal-reset-pass').classList.remove('hidden');
+      safeIcons();
+    }
+
+    document.getElementById('reset-pass-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const userId = document.getElementById('reset-pass-user-id').value;
+      const newPassword = document.getElementById('reset-pass-input').value;
+
+      try {
+        setGlobalLoader(true, 'Mereset Kata Sandi...', 'Memperbarui hash sandi di Google Sheets');
+        await GasApi.post('resetPassword', {
+          mode: 'resetPassword',
+          userId,
+          newPassword,
+          actor: { name: appState.user.name, role: normalizeRole(appState.user.role) }
+        });
+        closeModal('modal-reset-pass');
+        showToast('Kata sandi pengguna berhasil direset.', 'success');
+      } catch (err) {
+        showToast('Gagal mereset kata sandi: ' + err.message, 'error');
+      } finally {
+        setGlobalLoader(false);
+      }
+    });
+
+    async function toggleUserActive(userId) {
+      const u = appState.users.find(item => item.id === userId);
+      if (!u) return;
+      if (String(u.username || '').toLowerCase() === 'admin') {
+        showToast('Akun Administrator utama tidak dapat dinonaktifkan.', 'error');
+        return;
+      }
+
+      try {
+        setGlobalLoader(true, 'Mengubah Status Akun...', 'Menyimpan ke Google Sheets');
+        await GasApi.post('toggleUserStatus', {
+          mode: 'toggleActive',
+          userId,
+          actor: { name: appState.user.name, role: normalizeRole(appState.user.role) }
+        });
+        await syncDataFromServer(false);
+        showToast(`Status akun ${u.name} berhasil diperbarui.`, 'info');
+      } catch (err) {
+        showToast('Gagal mengubah status akun: ' + err.message, 'error');
+      } finally {
+        setGlobalLoader(false);
+      }
+    }
+
+    function confirmDeleteUser(userId) {
+      const u = appState.users.find(item => item.id === userId);
+      if (!u) return;
+      if (String(u.username || '').toLowerCase() === 'admin') {
+        showToast('Akun Administrator utama tidak dapat dihapus.', 'error');
+        return;
+      }
+      openConfirmModal(
+        'Hapus Pengguna Permanen?',
+        `Akun ${u.name} (${u.username}) akan dihapus permanen dari sheet Users Google Sheets.`,
+        async () => {
+          try {
+            setGlobalLoader(true, 'Menghapus Pengguna...', 'Memperbarui Google Sheets');
+            await GasApi.post('deleteUser', {
+              userId,
+              actor: { name: appState.user.name, role: normalizeRole(appState.user.role) }
+            });
+            await syncDataFromServer(false);
+            showToast(`Akun ${u.name} berhasil dihapus.`, 'info');
+          } catch (err) {
+            showToast('Gagal menghapus pengguna: ' + err.message, 'error');
+          } finally {
+            setGlobalLoader(false);
+          }
+        }
+      );
+    }
+
+    document.getElementById('gas-config-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const gasUrl = document.getElementById('gas-url-input').value.trim();
+      const token = document.getElementById('gas-token-input').value.trim();
+      const resBox = document.getElementById('gas-test-result');
+
+      try {
+        setGlobalLoader(true, 'Menguji Koneksi GAS...', 'Memeriksa akses Google Sheets & Drive');
+        const pingRes = await GasApi.ping({ gasUrl, token });
+        GasApi.saveConfig(gasUrl, token);
+
+        resBox.className = 'p-3.5 rounded-xl text-xs border bg-emerald-50 border-emerald-200 text-emerald-800 space-y-1';
+        resBox.innerHTML = `
+          <p class="font-extrabold">Koneksi Berhasil!</p>
+          <p>Spreadsheet: <strong>${escapeHtml(pingRes.spreadsheetName || '-')}</strong> • Folder Drive: <strong>${escapeHtml(pingRes.rootFolderName || '-')}</strong></p>
+          <p class="text-[11px] text-emerald-700">Waktu server: ${escapeHtml(pingRes.serverTime || '-')}</p>`;
+        resBox.classList.remove('hidden');
+
+        await syncDataFromServer(false);
+        showToast('Konfigurasi endpoint GAS disimpan & terhubung!', 'success');
+      } catch (err) {
+        resBox.className = 'p-3.5 rounded-xl text-xs border bg-rose-50 border-rose-200 text-rose-800';
+        resBox.innerHTML = `<p class="font-bold">Uji Koneksi Gagal</p><p class="mt-0.5">${escapeHtml(err.message)}</p>`;
+        resBox.classList.remove('hidden');
+        showToast('Gagal menghubungi GAS: ' + err.message, 'error');
+      } finally {
+        setGlobalLoader(false);
+      }
+    });
+
+    function resetGasUrlDefault() {
+      GasApi.saveConfig(DEFAULT_GAS_URL, '');
+      document.getElementById('gas-url-input').value = DEFAULT_GAS_URL;
+      document.getElementById('gas-token-input').value = '';
+      showToast('URL Web App dikembalikan ke endpoint produksi bawaan.', 'info');
+    }
+
+    function copyGasCode() {
+      const textarea = document.createElement('textarea');
+      textarea.value = GAS_CODE_GS_REFERENCE;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast('Skrip Code.gs berhasil disalin ke clipboard!', 'success');
+      } catch (e) {
+        showToast('Gagal menyalin otomatis. Blok teks Code.gs secara manual.', 'error');
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
+
+    /**
+     * =========================================================================
+     * 15. NOTIFIKASI & MODAL KONFIRMASI
+     * =========================================================================
+     */
+    function openConfirmModal(title, message, onConfirm) {
+      document.getElementById('confirm-title').textContent = title;
+      document.getElementById('confirm-message').textContent = message;
+      document.getElementById('confirm-yes-btn').onclick = () => {
+        closeModal('modal-confirm');
+        onConfirm();
+      };
+      document.getElementById('modal-confirm').classList.remove('hidden');
+      safeIcons();
+    }
+
+    function renderNotifications() {
+      if (!appState.user) return;
+      const role = normalizeRole(appState.user.role);
+      const list = (appState.notifications || []).filter(n =>
+        Array.isArray(n.targetRoles) && n.targetRoles.map(normalizeRole).includes(role)
+      );
+      const unread = list.filter(n => !n.read).length;
+
+      const badge = document.getElementById('notif-badge');
+      badge.textContent = unread > 9 ? '9+' : unread;
+      badge.classList.toggle('hidden', unread === 0);
+
+      const listEl = document.getElementById('notif-list');
+      if (list.length === 0) {
+        listEl.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">Belum ada notifikasi untuk ${escapeHtml(role)}.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = list.slice(0, 10).map(n => `
+        <button onclick="openNotifDoc('${escapeHtml(n.id)}', '${escapeHtml(n.docId || '')}')" class="w-full text-left p-3.5 hover:bg-slate-50 transition flex items-start gap-3 ${n.read ? 'opacity-70' : 'bg-yellow-50/50'}">
+          <span class="w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.read ? 'bg-slate-300' : 'bg-esdm-amber'}"></span>
+          <div class="min-w-0 flex-1">
+            <p class="text-xs font-bold text-navy-900">${escapeHtml(n.title)}</p>
+            <p class="text-[11px] text-slate-600 mt-0.5 leading-snug">${escapeHtml(n.message)}</p>
+            <p class="text-[10px] text-slate-400 mt-1">${escapeHtml(n.time)}</p>
+          </div>
+        </button>
+      `).join('');
+    }
+
+    function toggleNotifDropdown() {
+      document.getElementById('notif-dropdown').classList.toggle('hidden');
+    }
+
+    async function openNotifDoc(notifId, docId) {
+      const n = appState.notifications.find(i => i.id === notifId);
+      if (n && !n.read) {
+        n.read = true;
+        renderNotifications();
+        try {
+          await GasApi.post('markNotificationsRead', { notifId, role: normalizeRole(appState.user.role) });
+        } catch (e) {}
+      }
+      document.getElementById('notif-dropdown').classList.add('hidden');
+      if (docId) openPreviewModal(docId);
+    }
+
+    async function markAllNotifRead() {
+      const role = normalizeRole(appState.user.role);
+      appState.notifications.forEach(n => {
+        if (Array.isArray(n.targetRoles) && n.targetRoles.map(normalizeRole).includes(role)) n.read = true;
+      });
+      renderNotifications();
+      try {
+        await GasApi.post('markNotificationsRead', { role });
+      } catch (e) {}
+      showToast('Semua notifikasi ditandai telah dibaca.', 'info');
+    }
+
+    document.addEventListener('click', e => {
+      const dd = document.getElementById('notif-dropdown');
+      const btn = document.getElementById('notif-btn');
+      if (dd && btn && !dd.classList.contains('hidden') && !dd.contains(e.target) && !btn.contains(e.target)) {
+        dd.classList.add('hidden');
+      }
+    });
+
+    /**
+     * =========================================================================
+     * 16. RENDER VIEW CONTROLLER & INISIALISASI HALAMAN
+     * =========================================================================
+     */
+    function renderCurrentView() {
+      if (!appState.user) return;
+      const role = normalizeRole(appState.user.role);
+      if (!hasViewAccess(appState.currentView)) {
+        appState.currentView = isPengawasRole(role) ? 'arsip' : 'dashboard';
+      }
+
+      const views = ['dashboard', 'arsip', 'validasi', 'riwayat', 'laporan', 'pengaturan'];
+      const titles = {
+        dashboard: 'Dashboard',
+        arsip: 'Arsip Dokumen Keuangan',
+        validasi: 'Validasi Dokumen',
+        riwayat: 'Riwayat & Audit Log',
+        laporan: 'Laporan & Rekapitulasi',
+        pengaturan: 'Pengaturan & Manajemen Pengguna'
+      };
+
+      views.forEach(v => {
+        const el = document.getElementById('view-' + v);
+        if (el) el.classList.toggle('hidden', v !== appState.currentView);
+      });
+      document.getElementById('topbar-title').textContent = titles[appState.currentView] || 'SIADIK PSDMBP';
+
+      if (appState.currentView === 'dashboard') renderDashboard();
+      if (appState.currentView === 'arsip') renderArchiveTable();
+      if (appState.currentView === 'validasi') renderValidationQueue();
+      if (appState.currentView === 'riwayat') renderAuditLogs();
+      if (appState.currentView === 'laporan') renderReport();
+      if (appState.currentView === 'pengaturan') switchSettingsTab(appState.settingsTab || 'users');
+
+      safeIcons();
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      applyDynamicFavicon();
+      document.getElementById('login-logo-slot').innerHTML = ESDM_NEW_LOGO_SVG;
+      document.getElementById('login-mobile-logo-slot').innerHTML = ESDM_NEW_LOGO_SVG;
+      document.getElementById('sidebar-logo-slot').innerHTML = ESDM_NEW_LOGO_SVG;
+      document.getElementById('report-logo-slot').innerHTML = ESDM_NEW_LOGO_SVG;
+      document.getElementById('gas-code-preview').textContent = GAS_CODE_GS_REFERENCE;
+
+      initPdfDropzone();
+      safeIcons();
+
+      const savedSession = loadSavedSession();
+      if (savedSession && savedSession.user) {
+        appState.user = savedSession.user;
+        document.getElementById('login-view').classList.add('hidden');
+        document.getElementById('app-shell').classList.remove('hidden');
+        renderSidebar();
+        await syncDataFromServer(false);
+      } else {
+        document.getElementById('login-view').classList.remove('hidden');
+        document.getElementById('app-shell').classList.add('hidden');
+        checkGasServerHealth();
+      }
+    });
+  </script>
+</body>
+</html>
